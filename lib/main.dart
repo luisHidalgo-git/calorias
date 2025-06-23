@@ -12,7 +12,6 @@ class SmartwatchCalorieApp extends StatelessWidget {
     return MaterialApp(
       title: 'Smartwatch Calories',
       theme: ThemeData.dark().copyWith(
-        primarySwatch: Colors.blue,
         scaffoldBackgroundColor: Colors.black,
         colorScheme: ColorScheme.dark(
           primary: Colors.blue,
@@ -37,7 +36,7 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
   double calories = 0.0;
   double distance = 0.0; // in km
   int heartRate = 72;
-  
+
   late AnimationController _pulseController;
   late AnimationController _progressController;
   late Animation<double> _pulseAnimation;
@@ -49,32 +48,24 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
   @override
   void initState() {
     super.initState();
-    
+
     _pulseController = AnimationController(
       duration: Duration(milliseconds: 1000),
       vsync: this,
     )..repeat(reverse: true);
-    
+
     _progressController = AnimationController(
       duration: Duration(milliseconds: 800),
       vsync: this,
     );
-    
-    _pulseAnimation = Tween<double>(
-      begin: 0.95,
-      end: 1.05,
-    ).animate(CurvedAnimation(
-      parent: _pulseController,
-      curve: Curves.easeInOut,
-    ));
-    
-    _progressAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _progressController,
-      curve: Curves.easeOutCubic,
-    ));
+
+    _pulseAnimation = Tween<double>(begin: 0.95, end: 1.05).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+
+    _progressAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _progressController, curve: Curves.easeOutCubic),
+    );
   }
 
   @override
@@ -92,7 +83,7 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
       distance = steps * 0.0008; // Approximate: 0.8m per step
       heartRate = 72 + (steps / 100).round().clamp(0, 50);
     });
-    
+
     _progressController.forward();
     Future.delayed(Duration(milliseconds: 800), () {
       _progressController.reset();
@@ -107,16 +98,15 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
       distance = 0.0;
       heartRate = 72;
     });
-    
+
     _progressController.reset();
   }
 
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
-    final isSquare = screenSize.width == screenSize.height;
     final watchSize = math.min(screenSize.width, screenSize.height);
-    
+
     return Scaffold(
       backgroundColor: Colors.black,
       body: Container(
@@ -130,14 +120,11 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
                 gradient: RadialGradient(
                   center: Alignment.center,
                   radius: 0.8,
-                  colors: [
-                    Colors.grey[900]!,
-                    Colors.black,
-                  ],
+                  colors: [Colors.grey[900]!, Colors.black],
                 ),
               ),
             ),
-            
+
             // Main watch face
             Center(
               child: Container(
@@ -152,7 +139,7 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
                       strokeWidth: 8,
                       radius: watchSize * 0.45,
                     ),
-                    
+
                     // Middle ring - Calories progress
                     _buildProgressRing(
                       progress: calories / dailyCaloriesGoal,
@@ -160,7 +147,7 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
                       strokeWidth: 6,
                       radius: watchSize * 0.38,
                     ),
-                    
+
                     // Inner ring - Heart rate indicator
                     AnimatedBuilder(
                       animation: _pulseAnimation,
@@ -176,7 +163,7 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
                         );
                       },
                     ),
-                    
+
                     // Center content
                     Center(
                       child: Container(
@@ -202,9 +189,9 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
                                 letterSpacing: 1.2,
                               ),
                             ),
-                            
+
                             SizedBox(height: watchSize * 0.02),
-                            
+
                             // Calories
                             Row(
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -232,9 +219,9 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
                                 ),
                               ],
                             ),
-                            
+
                             SizedBox(height: watchSize * 0.015),
-                            
+
                             // Distance and Heart Rate
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -259,7 +246,7 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
                                     ),
                                   ],
                                 ),
-                                
+
                                 // Heart Rate
                                 Column(
                                   children: [
@@ -297,7 +284,7 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
                         ),
                       ),
                     ),
-                    
+
                     // Touch areas for interaction
                     Positioned(
                       bottom: watchSize * 0.1,
@@ -327,7 +314,7 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
                               ),
                             ),
                           ),
-                          
+
                           // Reset button
                           GestureDetector(
                             onTap: _resetData,
@@ -337,10 +324,7 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
                               decoration: BoxDecoration(
                                 color: Colors.red.withOpacity(0.2),
                                 shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: Colors.red,
-                                  width: 2,
-                                ),
+                                border: Border.all(color: Colors.red, width: 2),
                               ),
                               child: Icon(
                                 Icons.refresh,
@@ -352,7 +336,7 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
                         ],
                       ),
                     ),
-                    
+
                     // Time display (top)
                     Positioned(
                       top: watchSize * 0.08,
@@ -395,7 +379,7 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
       animation: _progressAnimation,
       builder: (context, child) {
         final animatedProgress = progress * _progressAnimation.value;
-        
+
         return Center(
           child: SizedBox(
             width: radius * 2,
