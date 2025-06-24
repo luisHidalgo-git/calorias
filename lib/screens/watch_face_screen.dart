@@ -61,12 +61,10 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
     _activityTimer = Timer.periodic(Duration(seconds: 3), (timer) {
       if (mounted) {
         setState(() {
-          // Incremento más realista entre 1-3 calorías cada 3 segundos
           double increment = 1.0 + (math.Random().nextDouble() * 2.0);
           fitnessData.addCalories(increment);
         });
 
-        // Animar el fondo cuando cambian las calorías
         _backgroundController.forward().then((_) {
           _backgroundController.reverse();
         });
@@ -77,7 +75,7 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
-    final watchSize = math.min(screenSize.width, screenSize.height);
+    final watchSize = math.min(screenSize.width, screenSize.height) * 0.75;
     final backgroundColor = ColorUtils.getBackgroundColor(fitnessData.calories);
     final progressColor = ColorUtils.getProgressColor(fitnessData.calories);
     final accentColor = ColorUtils.getAccentColor(fitnessData.calories);
@@ -93,97 +91,84 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
             decoration: BoxDecoration(
               gradient: RadialGradient(
                 center: Alignment.center,
-                radius: 1.5,
+                radius: 1.2,
                 colors: [
                   Color.lerp(
                     backgroundColor,
                     accentColor,
-                    _backgroundAnimation.value * 0.2,
+                    _backgroundAnimation.value * 0.15,
                   )!,
-                  backgroundColor.withOpacity(0.9),
-                  backgroundColor.withOpacity(0.6),
+                  backgroundColor.withOpacity(0.8),
                   Colors.black,
                 ],
-                stops: [0.0, 0.3, 0.7, 1.0],
+                stops: [0.0, 0.6, 1.0],
               ),
             ),
-            child: Stack(
+            child: Column(
               children: [
-                // Efecto de partículas sutiles
-                ...List.generate(
-                  6,
-                  (index) =>
-                      _buildFloatingParticle(index, watchSize, accentColor),
+                // Hora en la parte superior
+                Container(
+                  margin: EdgeInsets.only(top: 40),
+                  child: TimeDisplay(
+                    watchSize: watchSize,
+                    accentColor: accentColor,
+                  ),
                 ),
 
-                // Main watch face
-                Center(
-                  child: AnimatedBuilder(
-                    animation: _pulseAnimation,
-                    builder: (context, child) {
-                      return Transform.scale(
-                        scale: _pulseAnimation.value,
-                        child: SizedBox(
-                          width: watchSize * 0.85,
-                          height: watchSize * 0.85,
-                          child: Stack(
-                            children: [
-                              // Anillo principal de progreso
-                              ProgressRing(
-                                progress:
-                                    fitnessData.calories /
-                                    fitnessData.dailyCaloriesGoal,
-                                color: progressColor,
-                                strokeWidth: 16,
-                                radius: watchSize * 0.4,
-                              ),
-
-                              // Anillo interior decorativo
-                              ProgressRing(
-                                progress: 1.0,
-                                color: accentColor.withOpacity(0.15),
-                                strokeWidth: 2,
-                                radius: watchSize * 0.32,
-                              ),
-
-                              // Contenido central
-                              CenterContent(
-                                fitnessData: fitnessData,
-                                watchSize: watchSize,
-                              ),
-
-                              // Display de tiempo
-                              TimeDisplay(
-                                watchSize: watchSize,
-                                accentColor: accentColor,
-                              ),
-
-                              // Indicador de progreso en la parte inferior
-                              Positioned(
-                                bottom: watchSize * 0.12,
-                                left: 0,
-                                right: 0,
-                                child: _buildProgressIndicator(
-                                  watchSize,
-                                  progressColor,
+                // Espacio flexible
+                Expanded(
+                  child: Center(
+                    child: AnimatedBuilder(
+                      animation: _pulseAnimation,
+                      builder: (context, child) {
+                        return Transform.scale(
+                          scale: _pulseAnimation.value,
+                          child: SizedBox(
+                            width: watchSize,
+                            height: watchSize,
+                            child: Stack(
+                              children: [
+                                // Anillo principal de progreso
+                                ProgressRing(
+                                  progress:
+                                      fitnessData.calories /
+                                      fitnessData.dailyCaloriesGoal,
+                                  color: progressColor,
+                                  strokeWidth: 12,
+                                  radius: watchSize * 0.38,
                                 ),
-                              ),
 
-                              // Descripción del nivel de actividad
-                              Positioned(
-                                bottom: watchSize * 0.05,
-                                left: 0,
-                                right: 0,
-                                child: _buildActivityDescription(
-                                  watchSize,
-                                  accentColor,
+                                // Anillo interior decorativo
+                                ProgressRing(
+                                  progress: 1.0,
+                                  color: accentColor.withOpacity(0.12),
+                                  strokeWidth: 2,
+                                  radius: watchSize * 0.3,
                                 ),
-                              ),
-                            ],
+
+                                // Contenido central
+                                CenterContent(
+                                  fitnessData: fitnessData,
+                                  watchSize: watchSize,
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      );
-                    },
+                        );
+                      },
+                    ),
+                  ),
+                ),
+
+                // Información inferior
+                Container(
+                  margin: EdgeInsets.only(bottom: 30),
+                  child: Column(
+                    children: [
+                      _buildProgressIndicator(watchSize, progressColor),
+                      SizedBox(height: 12),
+                      _buildActivityDescription(watchSize, accentColor),
+                    ],
                   ),
                 ),
               ],
@@ -200,10 +185,10 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
     return Column(
       children: [
         Container(
-          width: watchSize * 0.3,
-          height: 6,
+          width: watchSize * 0.25,
+          height: 3,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(3),
+            borderRadius: BorderRadius.circular(2),
             color: color.withOpacity(0.2),
           ),
           child: FractionallySizedBox(
@@ -211,29 +196,23 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
             widthFactor: progress.clamp(0.0, 1.0),
             child: Container(
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(3),
-                gradient: LinearGradient(
-                  colors: [color.withOpacity(0.8), color],
-                ),
+                borderRadius: BorderRadius.circular(2),
+                color: color,
                 boxShadow: [
-                  BoxShadow(
-                    color: color.withOpacity(0.6),
-                    blurRadius: 8,
-                    spreadRadius: 1,
-                  ),
+                  BoxShadow(color: color.withOpacity(0.5), blurRadius: 4),
                 ],
               ),
             ),
           ),
         ),
-        SizedBox(height: 8),
+        SizedBox(height: 4),
         Text(
           '${(progress * 100).toStringAsFixed(0)}% META',
           style: TextStyle(
-            fontSize: watchSize * 0.022,
+            fontSize: watchSize * 0.016,
             color: color.withOpacity(0.9),
             fontWeight: FontWeight.w600,
-            letterSpacing: 1.5,
+            letterSpacing: 1.0,
           ),
         ),
       ],
@@ -243,46 +222,22 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
   Widget _buildActivityDescription(double watchSize, Color accentColor) {
     final description = ColorUtils.getActivityDescription(fitnessData.calories);
 
-    return Center(
-      child: Container(
-        padding: EdgeInsets.symmetric(
-          horizontal: watchSize * 0.04,
-          vertical: watchSize * 0.01,
-        ),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(watchSize * 0.02),
-          color: accentColor.withOpacity(0.1),
-          border: Border.all(color: accentColor.withOpacity(0.3), width: 1),
-        ),
-        child: Text(
-          description,
-          style: TextStyle(
-            fontSize: watchSize * 0.02,
-            color: accentColor.withOpacity(0.8),
-            fontWeight: FontWeight.w500,
-            letterSpacing: 1.0,
-          ),
-        ),
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: watchSize * 0.025,
+        vertical: watchSize * 0.006,
       ),
-    );
-  }
-
-  Widget _buildFloatingParticle(int index, double watchSize, Color color) {
-    final random = math.Random(index);
-    final size = 1.5 + random.nextDouble() * 3.0;
-    final left = random.nextDouble() * watchSize;
-    final top = random.nextDouble() * watchSize;
-
-    return Positioned(
-      left: left,
-      top: top,
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: color.withOpacity(0.1 + random.nextDouble() * 0.15),
-          boxShadow: [BoxShadow(color: color.withOpacity(0.2), blurRadius: 3)],
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(watchSize * 0.012),
+        color: accentColor.withOpacity(0.08),
+        border: Border.all(color: accentColor.withOpacity(0.25), width: 1),
+      ),
+      child: Text(
+        description,
+        style: TextStyle(
+          fontSize: watchSize * 0.014,
+          color: accentColor.withOpacity(0.8),
+          fontWeight: FontWeight.w500,
         ),
       ),
     );
