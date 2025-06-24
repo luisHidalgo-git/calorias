@@ -16,7 +16,6 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
     with TickerProviderStateMixin {
   FitnessData fitnessData = FitnessData();
   Timer? _activityTimer;
-  Timer? _resetTimer;
 
   late AnimationController _pulseController;
   late AnimationController _backgroundController;
@@ -46,7 +45,6 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
     );
 
     _startAutomaticActivity();
-    _startResetTimer();
   }
 
   @override
@@ -54,36 +52,19 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
     _pulseController.dispose();
     _backgroundController.dispose();
     _activityTimer?.cancel();
-    _resetTimer?.cancel();
     super.dispose();
   }
 
   void _startAutomaticActivity() {
-    _activityTimer = Timer.periodic(Duration(seconds: 2), (timer) {
+    _activityTimer = Timer.periodic(Duration(seconds: 3), (timer) {
       if (mounted) {
         setState(() {
-          // Incremento aleatorio entre 2-6 calorías
-          double increment = 2.0 + (math.Random().nextDouble() * 4.0);
+          // Incremento más realista entre 1-3 calorías cada 3 segundos
+          double increment = 1.0 + (math.Random().nextDouble() * 2.0);
           fitnessData.addCalories(increment);
         });
 
         // Animar el fondo cuando cambian las calorías
-        _backgroundController.forward().then((_) {
-          _backgroundController.reverse();
-        });
-      }
-    });
-  }
-
-  void _startResetTimer() {
-    // Reiniciar cada 30 segundos para demostración
-    _resetTimer = Timer.periodic(Duration(seconds: 30), (timer) {
-      if (mounted) {
-        setState(() {
-          fitnessData.reset();
-        });
-
-        // Efecto visual de reinicio
         _backgroundController.forward().then((_) {
           _backgroundController.reverse();
         });
@@ -115,10 +96,10 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
                   Color.lerp(
                     backgroundColor,
                     accentColor,
-                    _backgroundAnimation.value * 0.3,
+                    _backgroundAnimation.value * 0.2,
                   )!,
-                  backgroundColor.withOpacity(0.8),
-                  backgroundColor.withOpacity(0.4),
+                  backgroundColor.withOpacity(0.9),
+                  backgroundColor.withOpacity(0.6),
                   Colors.black,
                 ],
                 stops: [0.0, 0.3, 0.7, 1.0],
@@ -128,7 +109,7 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
               children: [
                 // Efecto de partículas sutiles
                 ...List.generate(
-                  8,
+                  6,
                   (index) =>
                       _buildFloatingParticle(index, watchSize, accentColor),
                 ),
@@ -158,8 +139,8 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
                               // Anillo interior decorativo
                               ProgressRing(
                                 progress: 1.0,
-                                color: accentColor.withOpacity(0.2),
-                                strokeWidth: 3,
+                                color: accentColor.withOpacity(0.15),
+                                strokeWidth: 2,
                                 radius: watchSize * 0.32,
                               ),
 
@@ -183,6 +164,17 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
                                 child: _buildProgressIndicator(
                                   watchSize,
                                   progressColor,
+                                ),
+                              ),
+
+                              // Descripción del nivel de actividad
+                              Positioned(
+                                bottom: watchSize * 0.05,
+                                left: 0,
+                                right: 0,
+                                child: _buildActivityDescription(
+                                  watchSize,
+                                  accentColor,
                                 ),
                               ),
                             ],
@@ -246,9 +238,36 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
     );
   }
 
+  Widget _buildActivityDescription(double watchSize, Color accentColor) {
+    final description = ColorUtils.getActivityDescription(fitnessData.calories);
+
+    return Center(
+      child: Container(
+        padding: EdgeInsets.symmetric(
+          horizontal: watchSize * 0.04,
+          vertical: watchSize * 0.01,
+        ),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(watchSize * 0.02),
+          color: accentColor.withOpacity(0.1),
+          border: Border.all(color: accentColor.withOpacity(0.3), width: 1),
+        ),
+        child: Text(
+          description,
+          style: TextStyle(
+            fontSize: watchSize * 0.02,
+            color: accentColor.withOpacity(0.8),
+            fontWeight: FontWeight.w500,
+            letterSpacing: 1.0,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildFloatingParticle(int index, double watchSize, Color color) {
     final random = math.Random(index);
-    final size = 2.0 + random.nextDouble() * 4.0;
+    final size = 1.5 + random.nextDouble() * 3.0;
     final left = random.nextDouble() * watchSize;
     final top = random.nextDouble() * watchSize;
 
@@ -260,8 +279,8 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
         height: size,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: color.withOpacity(0.1 + random.nextDouble() * 0.2),
-          boxShadow: [BoxShadow(color: color.withOpacity(0.3), blurRadius: 4)],
+          color: color.withOpacity(0.1 + random.nextDouble() * 0.15),
+          boxShadow: [BoxShadow(color: color.withOpacity(0.2), blurRadius: 3)],
         ),
       ),
     );

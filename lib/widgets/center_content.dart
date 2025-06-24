@@ -18,6 +18,7 @@ class CenterContent extends StatelessWidget {
     final motivationalText = ColorUtils.getMotivationalText(
       fitnessData.calories,
     );
+    final textColor = ColorUtils.getTextColor(fitnessData.calories);
 
     return Center(
       child: Container(
@@ -26,7 +27,7 @@ class CenterContent extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Texto motivacional
+            // Nivel de actividad
             Container(
               padding: EdgeInsets.symmetric(
                 horizontal: watchSize * 0.03,
@@ -108,7 +109,7 @@ class CenterContent extends StatelessWidget {
 
             SizedBox(height: watchSize * 0.04),
 
-            // Ritmo cardíaco
+            // Ritmo cardíaco con color dinámico
             Container(
               padding: EdgeInsets.symmetric(
                 horizontal: watchSize * 0.03,
@@ -116,9 +117,9 @@ class CenterContent extends StatelessWidget {
               ),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(watchSize * 0.02),
-                color: Colors.red.withOpacity(0.1),
+                color: _getHeartRateColor().withOpacity(0.1),
                 border: Border.all(
-                  color: Colors.red.withOpacity(0.3),
+                  color: _getHeartRateColor().withOpacity(0.3),
                   width: 1,
                 ),
               ),
@@ -127,7 +128,7 @@ class CenterContent extends StatelessWidget {
                 children: [
                   Icon(
                     Icons.favorite,
-                    color: Colors.red,
+                    color: _getHeartRateColor(),
                     size: watchSize * 0.04,
                   ),
                   SizedBox(width: 8),
@@ -136,7 +137,7 @@ class CenterContent extends StatelessWidget {
                     style: TextStyle(
                       fontSize: watchSize * 0.04,
                       fontWeight: FontWeight.w600,
-                      color: Colors.red,
+                      color: _getHeartRateColor(),
                     ),
                   ),
                   SizedBox(width: 4),
@@ -144,7 +145,7 @@ class CenterContent extends StatelessWidget {
                     'bpm',
                     style: TextStyle(
                       fontSize: watchSize * 0.025,
-                      color: Colors.red.withOpacity(0.7),
+                      color: _getHeartRateColor().withOpacity(0.7),
                     ),
                   ),
                 ],
@@ -154,5 +155,16 @@ class CenterContent extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Color _getHeartRateColor() {
+    // Color del ritmo cardíaco basado en la intensidad
+    if (fitnessData.heartRate < 80) {
+      return Colors.green;
+    } else if (fitnessData.heartRate < 100) {
+      return Colors.orange;
+    } else {
+      return Colors.red;
+    }
   }
 }
