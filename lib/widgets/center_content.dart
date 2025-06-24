@@ -7,10 +7,10 @@ class CenterContent extends StatelessWidget {
   final double watchSize;
 
   const CenterContent({
-    Key? key,
+    super.key,
     required this.fitnessData,
     required this.watchSize,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +21,7 @@ class CenterContent extends StatelessWidget {
     final textColor = ColorUtils.getTextColor(fitnessData.calories);
 
     return Center(
-      child: Container(
+      child: SizedBox(
         width: watchSize * 0.6,
         height: watchSize * 0.6,
         child: Column(
@@ -81,7 +81,7 @@ class CenterContent extends StatelessWidget {
                   ),
                   SizedBox(height: watchSize * 0.01),
                   Text(
-                    '${fitnessData.calories.toStringAsFixed(0)}',
+                    fitnessData.calories.toStringAsFixed(0),
                     style: TextStyle(
                       fontSize: watchSize * 0.12,
                       fontWeight: FontWeight.bold,

@@ -8,12 +8,12 @@ class ProgressRing extends StatefulWidget {
   final double radius;
 
   const ProgressRing({
-    Key? key,
+    super.key,
     required this.progress,
     required this.color,
     required this.strokeWidth,
     required this.radius,
-  }) : super(key: key);
+  });
 
   @override
   _ProgressRingState createState() => _ProgressRingState();
@@ -35,13 +35,9 @@ class _ProgressRingState extends State<ProgressRing>
   }
 
   void _updateAnimation() {
-    _animation = Tween<double>(
-      begin: 0.0,
-      end: widget.progress,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeOutCubic,
-    ));
+    _animation = Tween<double>(begin: 0.0, end: widget.progress).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeOutCubic),
+    );
     _animationController.reset();
     _animationController.forward();
   }
@@ -114,11 +110,7 @@ class ProgressRingPainter extends CustomPainter {
         ..shader = SweepGradient(
           startAngle: -math.pi / 2,
           endAngle: -math.pi / 2 + (2 * math.pi * progress),
-          colors: [
-            color.withOpacity(0.6),
-            color,
-            color.withOpacity(0.9),
-          ],
+          colors: [color.withOpacity(0.6), color, color.withOpacity(0.9)],
         ).createShader(Rect.fromCircle(center: center, radius: radius))
         ..strokeWidth = strokeWidth
         ..style = PaintingStyle.stroke

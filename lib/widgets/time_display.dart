@@ -5,10 +5,10 @@ class TimeDisplay extends StatelessWidget {
   final Color accentColor;
 
   const TimeDisplay({
-    Key? key,
+    super.key,
     required this.watchSize,
     required this.accentColor,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -25,10 +25,7 @@ class TimeDisplay extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(watchSize * 0.03),
             color: accentColor.withOpacity(0.1),
-            border: Border.all(
-              color: accentColor.withOpacity(0.3),
-              width: 1,
-            ),
+            border: Border.all(color: accentColor.withOpacity(0.3), width: 1),
             boxShadow: [
               BoxShadow(
                 color: accentColor.withOpacity(0.2),

@@ -8,6 +8,8 @@ import '../widgets/time_display.dart';
 import '../utils/color_utils.dart';
 
 class WatchFaceScreen extends StatefulWidget {
+  const WatchFaceScreen({super.key});
+
   @override
   _WatchFaceScreenState createState() => _WatchFaceScreenState();
 }
@@ -121,7 +123,7 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
                     builder: (context, child) {
                       return Transform.scale(
                         scale: _pulseAnimation.value,
-                        child: Container(
+                        child: SizedBox(
                           width: watchSize * 0.85,
                           height: watchSize * 0.85,
                           child: Stack(

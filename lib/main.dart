@@ -7,6 +7,8 @@ void main() {
 }
 
 class SmartwatchCalorieApp extends StatelessWidget {
+  const SmartwatchCalorieApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
