@@ -28,7 +28,7 @@ class _ProgressRingState extends State<ProgressRing>
   void initState() {
     super.initState();
     _animationController = AnimationController(
-      duration: Duration(milliseconds: 2000),
+      duration: Duration(milliseconds: 2500),
       vsync: this,
     );
     _updateAnimation();
@@ -95,9 +95,9 @@ class ProgressRingPainter extends CustomPainter {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = (size.width - strokeWidth) / 2;
 
-    // Background circle
+    // Background circle - más sutil
     final backgroundPaint = Paint()
-      ..color = color.withOpacity(0.1)
+      ..color = color.withOpacity(0.15)
       ..strokeWidth = strokeWidth
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
@@ -110,7 +110,11 @@ class ProgressRingPainter extends CustomPainter {
         ..shader = SweepGradient(
           startAngle: -math.pi / 2,
           endAngle: -math.pi / 2 + (2 * math.pi * progress),
-          colors: [color.withOpacity(0.6), color, color.withOpacity(0.9)],
+          colors: [
+            color.withOpacity(0.7), 
+            color, 
+            color.withOpacity(0.8)
+          ],
         ).createShader(Rect.fromCircle(center: center, radius: radius))
         ..strokeWidth = strokeWidth
         ..style = PaintingStyle.stroke
@@ -125,13 +129,13 @@ class ProgressRingPainter extends CustomPainter {
         progressPaint,
       );
 
-      // Glow effect
+      // Glow effect más suave
       final glowPaint = Paint()
-        ..color = color.withOpacity(0.4)
-        ..strokeWidth = strokeWidth + 6
+        ..color = color.withOpacity(0.3)
+        ..strokeWidth = strokeWidth + 4
         ..style = PaintingStyle.stroke
         ..strokeCap = StrokeCap.round
-        ..maskFilter = MaskFilter.blur(BlurStyle.normal, 8);
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, 6);
 
       canvas.drawArc(
         Rect.fromCircle(center: center, radius: radius),

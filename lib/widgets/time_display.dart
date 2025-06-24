@@ -19,11 +19,11 @@ class TimeDisplay extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(watchSize * 0.025),
-        color: accentColor.withOpacity(0.08),
-        border: Border.all(color: accentColor.withOpacity(0.25), width: 1),
+        color: accentColor.withOpacity(0.12),
+        border: Border.all(color: accentColor.withOpacity(0.3), width: 1),
         boxShadow: [
           BoxShadow(
-            color: accentColor.withOpacity(0.15),
+            color: accentColor.withOpacity(0.2),
             blurRadius: 8,
             spreadRadius: 1,
           ),
@@ -36,10 +36,10 @@ class TimeDisplay extends StatelessWidget {
           return Text(
             '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}',
             style: TextStyle(
-              fontSize: watchSize * 0.045,
+              fontSize: watchSize * 0.05,
               fontWeight: FontWeight.w300,
               color: accentColor,
-              letterSpacing: 3.0,
+              letterSpacing: 2.0,
             ),
           );
         },

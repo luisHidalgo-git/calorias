@@ -26,18 +26,18 @@ class CenterContent extends StatelessWidget {
           // Nivel de actividad
           Container(
             padding: EdgeInsets.symmetric(
-              horizontal: watchSize * 0.02,
-              vertical: watchSize * 0.006,
+              horizontal: watchSize * 0.025,
+              vertical: watchSize * 0.008,
             ),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(watchSize * 0.012),
-              color: accentColor.withOpacity(0.12),
-              border: Border.all(color: accentColor.withOpacity(0.3), width: 1),
+              borderRadius: BorderRadius.circular(watchSize * 0.015),
+              color: accentColor.withOpacity(0.15),
+              border: Border.all(color: accentColor.withOpacity(0.4), width: 1),
             ),
             child: Text(
               motivationalText,
               style: TextStyle(
-                fontSize: watchSize * 0.018,
+                fontSize: watchSize * 0.02,
                 color: accentColor,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 0.8,
@@ -45,28 +45,26 @@ class CenterContent extends StatelessWidget {
             ),
           ),
 
-          SizedBox(height: watchSize * 0.025),
+          SizedBox(height: watchSize * 0.02),
 
           // Contador principal de calorías
           Container(
-            padding: EdgeInsets.all(watchSize * 0.03),
+            width: watchSize * 0.35,
+            height: watchSize * 0.35,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: accentColor.withOpacity(0.08),
-              border: Border.all(
-                color: accentColor.withOpacity(0.35),
-                width: 2,
-              ),
+              color: accentColor.withOpacity(0.12),
+              border: Border.all(color: accentColor.withOpacity(0.4), width: 2),
               boxShadow: [
                 BoxShadow(
-                  color: accentColor.withOpacity(0.25),
+                  color: accentColor.withOpacity(0.3),
                   blurRadius: 12,
                   spreadRadius: 1,
                 ),
               ],
             ),
             child: Column(
-              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(
                   Icons.local_fire_department,
@@ -77,7 +75,7 @@ class CenterContent extends StatelessWidget {
                 Text(
                   fitnessData.calories.toStringAsFixed(0),
                   style: TextStyle(
-                    fontSize: watchSize * 0.08,
+                    fontSize: watchSize * 0.09,
                     fontWeight: FontWeight.bold,
                     color: accentColor,
                     shadows: [
@@ -91,9 +89,9 @@ class CenterContent extends StatelessWidget {
                 Text(
                   'CALORÍAS',
                   style: TextStyle(
-                    fontSize: watchSize * 0.016,
+                    fontSize: watchSize * 0.018,
                     color: accentColor.withOpacity(0.8),
-                    letterSpacing: 1.2,
+                    letterSpacing: 1.0,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -101,48 +99,29 @@ class CenterContent extends StatelessWidget {
             ),
           ),
 
-          SizedBox(height: watchSize * 0.025),
+          SizedBox(height: watchSize * 0.02),
 
-          // Ritmo cardíaco
+          // Ritmo cardíaco - simplificado
           Container(
             padding: EdgeInsets.symmetric(
-              horizontal: watchSize * 0.02,
+              horizontal: watchSize * 0.025,
               vertical: watchSize * 0.01,
             ),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(watchSize * 0.012),
-              color: _getHeartRateColor().withOpacity(0.08),
+              borderRadius: BorderRadius.circular(watchSize * 0.015),
+              color: _getHeartRateColor().withOpacity(0.12),
               border: Border.all(
-                color: _getHeartRateColor().withOpacity(0.25),
+                color: _getHeartRateColor().withOpacity(0.3),
                 width: 1,
               ),
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.favorite,
-                  color: _getHeartRateColor(),
-                  size: watchSize * 0.025,
-                ),
-                SizedBox(width: 4),
-                Text(
-                  '${fitnessData.heartRate}',
-                  style: TextStyle(
-                    fontSize: watchSize * 0.025,
-                    fontWeight: FontWeight.w600,
-                    color: _getHeartRateColor(),
-                  ),
-                ),
-                SizedBox(width: 2),
-                Text(
-                  'bpm',
-                  style: TextStyle(
-                    fontSize: watchSize * 0.016,
-                    color: _getHeartRateColor().withOpacity(0.7),
-                  ),
-                ),
-              ],
+            child: Text(
+              '♥ ${fitnessData.heartRate}',
+              style: TextStyle(
+                fontSize: watchSize * 0.025,
+                fontWeight: FontWeight.w600,
+                color: _getHeartRateColor(),
+              ),
             ),
           ),
         ],
@@ -152,11 +131,11 @@ class CenterContent extends StatelessWidget {
 
   Color _getHeartRateColor() {
     if (fitnessData.heartRate < 80) {
-      return Colors.green;
+      return Colors.green.shade400;
     } else if (fitnessData.heartRate < 100) {
-      return Colors.orange;
+      return Colors.orange.shade400;
     } else {
-      return Colors.red;
+      return Colors.red.shade400;
     }
   }
 }
