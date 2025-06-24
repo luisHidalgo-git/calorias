@@ -205,7 +205,7 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
         Text(
           '${(progress * 100).toStringAsFixed(0)}% OBJETIVO',
           style: TextStyle(
-            fontSize: watchSize * 0.02,
+            fontSize: watchSize * 0.025, // Aumentado de 0.02 a 0.025
             color: color.withOpacity(0.9),
             fontWeight: FontWeight.w600,
             letterSpacing: 1.0,
@@ -231,7 +231,7 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
       child: Text(
         description,
         style: TextStyle(
-          fontSize: watchSize * 0.016,
+          fontSize: watchSize * 0.02, // Aumentado de 0.016 a 0.02
           color: accentColor.withOpacity(0.9),
           fontWeight: FontWeight.w500,
         ),
