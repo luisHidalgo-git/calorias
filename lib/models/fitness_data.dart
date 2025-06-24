@@ -1,23 +1,28 @@
 class FitnessData {
   double _calories = 0.0;
-  double _distance = 0.0;
   int _heartRate = 72;
 
-  final double dailyCaloriesGoal = 400.0;
+  final double dailyCaloriesGoal = 300.0;
 
   double get calories => _calories;
-  double get distance => _distance;
   int get heartRate => _heartRate;
 
   void addCalories(double amount) {
     _calories += amount;
-    _distance = _calories * 0.02; // Approximate: 0.02km per 5 calories
-    _heartRate = (72 + (_calories / 5).round().clamp(0, 50)).clamp(60, 180);
+    _heartRate = (72 + (_calories / 8).round().clamp(0, 40)).clamp(60, 160);
   }
 
   void reset() {
     _calories = 0.0;
-    _distance = 0.0;
     _heartRate = 72;
+  }
+
+  // Método para obtener el nivel de intensidad basado en calorías
+  int get intensityLevel {
+    if (_calories < 50) return 1;
+    if (_calories < 100) return 2;
+    if (_calories < 200) return 3;
+    if (_calories < 250) return 4;
+    return 5;
   }
 }
