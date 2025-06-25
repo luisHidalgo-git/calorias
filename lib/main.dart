@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'screens/watch_face_screen.dart';
 
 void main() {
