@@ -119,6 +119,9 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
                     // Hora en la parte superior
                     TimeDisplay(watchSize: watchSize, accentColor: accentColor),
 
+                    // Texto motivacional justo debajo de la hora
+                    _buildMotivationalText(watchSize, accentColor),
+
                     // Área principal del reloj
                     Flexible(
                       flex: 3,
@@ -175,6 +178,34 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
     );
   }
 
+  Widget _buildMotivationalText(double watchSize, Color accentColor) {
+    final motivationalText = ColorUtils.getMotivationalText(
+      fitnessData.calories,
+    );
+
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: watchSize * 0.025,
+        vertical: watchSize * 0.008,
+      ),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(watchSize * 0.015),
+        color: accentColor.withOpacity(0.15),
+        border: Border.all(color: accentColor.withOpacity(0.4), width: 1),
+      ),
+      child: Text(
+        motivationalText,
+        style: TextStyle(
+          fontSize:
+              watchSize * 0.045, // Mismo tamaño que getActivityDescription
+          color: accentColor,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.8,
+        ),
+      ),
+    );
+  }
+
   Widget _buildProgressIndicator(double watchSize, Color color) {
     final progress = fitnessData.calories / fitnessData.dailyCaloriesGoal;
 
@@ -205,7 +236,7 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
         Text(
           '${(progress * 100).toStringAsFixed(0)}% OBJETIVO',
           style: TextStyle(
-            fontSize: watchSize * 0.025, // Aumentado de 0.02 a 0.025
+            fontSize: watchSize * 0.04, // Aumentado de 0.025 a 0.04
             color: color.withOpacity(0.9),
             fontWeight: FontWeight.w600,
             letterSpacing: 1.0,
@@ -231,7 +262,9 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
       child: Text(
         description,
         style: TextStyle(
-          fontSize: watchSize * 0.02, // Aumentado de 0.016 a 0.02
+          fontSize:
+              watchSize *
+              0.045, // Aumentado de 0.02 a 0.045 (casi el tamaño de la hora)
           color: accentColor.withOpacity(0.9),
           fontWeight: FontWeight.w500,
         ),

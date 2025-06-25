@@ -15,38 +15,11 @@ class CenterContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final accentColor = ColorUtils.getAccentColor(fitnessData.calories);
-    final motivationalText = ColorUtils.getMotivationalText(
-      fitnessData.calories,
-    );
 
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Nivel de actividad
-          Container(
-            padding: EdgeInsets.symmetric(
-              horizontal: watchSize * 0.025,
-              vertical: watchSize * 0.008,
-            ),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(watchSize * 0.015),
-              color: accentColor.withOpacity(0.15),
-              border: Border.all(color: accentColor.withOpacity(0.4), width: 1),
-            ),
-            child: Text(
-              motivationalText,
-              style: TextStyle(
-                fontSize: watchSize * 0.02,
-                color: accentColor,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.8,
-              ),
-            ),
-          ),
-
-          SizedBox(height: watchSize * 0.02),
-
           // Contador principal de calorías
           Container(
             width: watchSize * 0.35,
@@ -101,11 +74,11 @@ class CenterContent extends StatelessWidget {
 
           SizedBox(height: watchSize * 0.02),
 
-          // Ritmo cardíaco - simplificado
+          // Ritmo cardíaco - más grande
           Container(
             padding: EdgeInsets.symmetric(
-              horizontal: watchSize * 0.025,
-              vertical: watchSize * 0.01,
+              horizontal: watchSize * 0.03,
+              vertical: watchSize * 0.015,
             ),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(watchSize * 0.015),
@@ -118,7 +91,7 @@ class CenterContent extends StatelessWidget {
             child: Text(
               '♥ ${fitnessData.heartRate}',
               style: TextStyle(
-                fontSize: watchSize * 0.025,
+                fontSize: watchSize * 0.035, // Aumentado de 0.025 a 0.035
                 fontWeight: FontWeight.w600,
                 color: _getHeartRateColor(),
               ),
