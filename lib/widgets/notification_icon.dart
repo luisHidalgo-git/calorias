@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'dart:math' as math;
 import '../models/daily_calories.dart';
+import '../utils/screen_utils.dart';
+import 'watch_button.dart';
 
 class NotificationIcon extends StatefulWidget {
   final List<CalorieEntry> notifications;
@@ -58,8 +61,11 @@ class _NotificationIconState extends State<NotificationIcon>
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
-    final isRound = _isRoundScreen(screenSize);
     final hasNotifications = widget.notifications.isNotEmpty;
+    final watchSize = ScreenUtils.getAdaptiveSize(
+      screenSize,
+      math.min(screenSize.width, screenSize.height) * 0.7,
+    );
 
     return GestureDetector(
       onTap: hasNotifications ? widget.onTap : null,
@@ -68,78 +74,19 @@ class _NotificationIconState extends State<NotificationIcon>
         builder: (context, child) {
           return Transform.scale(
             scale: hasNotifications ? _pulseAnimation.value : 1.0,
-            child: Container(
-              padding: EdgeInsets.all(
-                screenSize.width * (isRound ? 0.02 : 0.025),
-              ),
-              decoration: BoxDecoration(
-                color: hasNotifications
-                    ? Colors.red.withOpacity(0.15)
-                    : Colors.grey.withOpacity(0.1),
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: hasNotifications
-                      ? Colors.red.withOpacity(0.4)
-                      : Colors.grey.withOpacity(0.3),
-                  width: 2,
-                ),
-                boxShadow: hasNotifications
-                    ? [
-                        BoxShadow(
-                          color: Colors.red.withOpacity(0.3),
-                          blurRadius: 8,
-                          spreadRadius: 1,
-                        ),
-                      ]
-                    : null,
-              ),
-              child: Stack(
-                children: [
-                  Icon(
-                    Icons.notifications_outlined,
-                    color: hasNotifications
-                        ? Colors.red.shade400
-                        : Colors.grey.shade500,
-                    size: screenSize.width * (isRound ? 0.05 : 0.06),
-                  ),
-                  if (hasNotifications)
-                    Positioned(
-                      right: 0,
-                      top: 0,
-                      child: Container(
-                        padding: EdgeInsets.all(2),
-                        decoration: BoxDecoration(
-                          color: Colors.red,
-                          shape: BoxShape.circle,
-                        ),
-                        constraints: BoxConstraints(
-                          minWidth: screenSize.width * (isRound ? 0.035 : 0.04),
-                          minHeight:
-                              screenSize.width * (isRound ? 0.035 : 0.04),
-                        ),
-                        child: Text(
-                          '${widget.notifications.length}',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize:
-                                screenSize.width * (isRound ? 0.022 : 0.025),
-                            fontWeight: FontWeight.bold,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
+            child: WatchButton(
+              onTap: hasNotifications ? widget.onTap : () {},
+              icon: Icons.notifications_outlined,
+              color: hasNotifications ? Colors.red : Colors.grey,
+              size: watchSize,
+              showBadge: hasNotifications,
+              badgeText: hasNotifications
+                  ? '${widget.notifications.length}'
+                  : null,
             ),
           );
         },
       ),
     );
-  }
-
-  bool _isRoundScreen(Size screenSize) {
-    final aspectRatio = screenSize.width / screenSize.height;
-    return (aspectRatio > 0.9 && aspectRatio < 1.1);
   }
 }

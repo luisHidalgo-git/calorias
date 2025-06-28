@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../utils/screen_utils.dart';
+import 'adaptive_text.dart';
 
 class TimeDisplay extends StatelessWidget {
   final double watchSize;
@@ -13,7 +15,7 @@ class TimeDisplay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
-    final isRound = _isRoundScreen(screenSize);
+    final isRound = ScreenUtils.isRoundScreen(screenSize);
 
     return Container(
       padding: EdgeInsets.symmetric(
@@ -36,22 +38,15 @@ class TimeDisplay extends StatelessWidget {
         stream: Stream.periodic(Duration(seconds: 1)),
         builder: (context, snapshot) {
           final now = DateTime.now();
-          return Text(
+          return AdaptiveText(
             '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}',
-            style: TextStyle(
-              fontSize: watchSize * (isRound ? 0.047 : 0.05),
-              fontWeight: FontWeight.w300,
-              color: accentColor,
-              letterSpacing: 2.0,
-            ),
+            fontSize: watchSize * (isRound ? 0.047 : 0.05),
+            fontWeight: FontWeight.w300,
+            color: accentColor,
+            style: TextStyle(letterSpacing: 2.0),
           );
         },
       ),
     );
-  }
-
-  bool _isRoundScreen(Size screenSize) {
-    final aspectRatio = screenSize.width / screenSize.height;
-    return (aspectRatio > 0.9 && aspectRatio < 1.1);
   }
 }

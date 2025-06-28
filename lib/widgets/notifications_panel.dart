@@ -57,19 +57,11 @@ class _NotificationsPanelState extends State<NotificationsPanel>
       child: SlideTransition(
         position: _slideAnimation,
         child: Container(
-          margin: EdgeInsets.all(
-            isRound ? screenSize.width * 0.08 : screenSize.width * 0.04,
-          ),
-          padding: EdgeInsets.all(
-            isRound ? screenSize.width * 0.05 : screenSize.width * 0.04,
-          ),
+          margin: EdgeInsets.all(isRound ? screenSize.width * 0.08 : screenSize.width * 0.04),
+          padding: EdgeInsets.all(isRound ? screenSize.width * 0.05 : screenSize.width * 0.04),
           constraints: BoxConstraints(
-            maxHeight: isRound
-                ? screenSize.height * 0.6
-                : screenSize.height * 0.7,
-            maxWidth: isRound
-                ? screenSize.width * 0.84
-                : screenSize.width * 0.9,
+            maxHeight: isRound ? screenSize.height * 0.6 : screenSize.height * 0.7,
+            maxWidth: isRound ? screenSize.width * 0.84 : screenSize.width * 0.9,
           ),
           decoration: BoxDecoration(
             color: Color(0xFF1A1A1A),
@@ -183,9 +175,9 @@ class _NotificationsPanelState extends State<NotificationsPanel>
           border: Border.all(color: color.withOpacity(0.3)),
         ),
         child: Icon(
-          icon,
-          color: color.shade400,
-          size: screenSize.width * (isRound ? 0.032 : 0.04),
+          icon, 
+          color: color.shade400, 
+          size: screenSize.width * (isRound ? 0.032 : 0.04)
         ),
       ),
     );
@@ -246,11 +238,7 @@ class _NotificationsPanelState extends State<NotificationsPanel>
     );
   }
 
-  Widget _buildNotificationItem(
-    CalorieEntry notification,
-    Size screenSize,
-    bool isRound,
-  ) {
+  Widget _buildNotificationItem(CalorieEntry notification, Size screenSize, bool isRound) {
     return Container(
       padding: EdgeInsets.all(screenSize.width * (isRound ? 0.028 : 0.035)),
       decoration: BoxDecoration(
@@ -268,9 +256,7 @@ class _NotificationsPanelState extends State<NotificationsPanel>
       child: Row(
         children: [
           Container(
-            padding: EdgeInsets.all(
-              screenSize.width * (isRound ? 0.02 : 0.025),
-            ),
+            padding: EdgeInsets.all(screenSize.width * (isRound ? 0.02 : 0.025)),
             decoration: BoxDecoration(
               color: Colors.green.withOpacity(0.2),
               shape: BoxShape.circle,
@@ -297,9 +283,7 @@ class _NotificationsPanelState extends State<NotificationsPanel>
                         color: Colors.green.shade300,
                       ),
                     ),
-                    SizedBox(
-                      width: screenSize.width * (isRound ? 0.012 : 0.015),
-                    ),
+                    SizedBox(width: screenSize.width * (isRound ? 0.012 : 0.015)),
                     Text(
                       'cal',
                       style: TextStyle(

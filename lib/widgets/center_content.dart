@@ -1,21 +1,23 @@
 import 'package:flutter/material.dart';
 import '../models/fitness_data.dart';
 import '../utils/color_utils.dart';
+import '../utils/screen_utils.dart';
+import 'adaptive_text.dart';
 
 class CenterContent extends StatelessWidget {
   final FitnessData fitnessData;
   final double watchSize;
-  final bool isRound;
 
   const CenterContent({
     super.key,
     required this.fitnessData,
     required this.watchSize,
-    this.isRound = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    final screenSize = MediaQuery.of(context).size;
+    final isRound = ScreenUtils.isRoundScreen(screenSize);
     final accentColor = ColorUtils.getAccentColor(fitnessData.calories);
 
     return Center(
@@ -47,12 +49,12 @@ class CenterContent extends StatelessWidget {
                   size: watchSize * (isRound ? 0.048 : 0.05),
                 ),
                 SizedBox(height: watchSize * 0.005),
-                Text(
+                AdaptiveText(
                   fitnessData.calories.toStringAsFixed(0),
+                  fontSize: watchSize * (isRound ? 0.085 : 0.09),
+                  fontWeight: FontWeight.bold,
+                  color: accentColor,
                   style: TextStyle(
-                    fontSize: watchSize * (isRound ? 0.085 : 0.09),
-                    fontWeight: FontWeight.bold,
-                    color: accentColor,
                     shadows: [
                       Shadow(
                         color: accentColor.withOpacity(0.5),
@@ -61,11 +63,11 @@ class CenterContent extends StatelessWidget {
                     ],
                   ),
                 ),
-                Text(
+                AdaptiveText(
                   'CALORÍAS',
+                  fontSize: watchSize * (isRound ? 0.017 : 0.018),
+                  color: accentColor.withOpacity(0.8),
                   style: TextStyle(
-                    fontSize: watchSize * (isRound ? 0.017 : 0.018),
-                    color: accentColor.withOpacity(0.8),
                     letterSpacing: 1.0,
                     fontWeight: FontWeight.w500,
                   ),
@@ -90,13 +92,11 @@ class CenterContent extends StatelessWidget {
                 width: 1,
               ),
             ),
-            child: Text(
+            child: AdaptiveText(
               '♥ ${fitnessData.heartRate}',
-              style: TextStyle(
-                fontSize: watchSize * (isRound ? 0.034 : 0.035),
-                fontWeight: FontWeight.w600,
-                color: _getHeartRateColor(),
-              ),
+              fontSize: watchSize * (isRound ? 0.034 : 0.035),
+              fontWeight: FontWeight.w600,
+              color: _getHeartRateColor(),
             ),
           ),
         ],
