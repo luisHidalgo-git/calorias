@@ -53,9 +53,15 @@ class _CaloriesTableScreenState extends State<CaloriesTableScreen>
     super.dispose();
   }
 
+  bool _isRoundScreen(Size screenSize) {
+    final aspectRatio = screenSize.width / screenSize.height;
+    return (aspectRatio > 0.9 && aspectRatio < 1.1);
+  }
+
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
+    final isRound = _isRoundScreen(screenSize);
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -63,17 +69,24 @@ class _CaloriesTableScreenState extends State<CaloriesTableScreen>
         child: FadeTransition(
           opacity: _fadeAnimation,
           child: Padding(
-            padding: EdgeInsets.all(screenSize.width * 0.04),
+            // Padding más agresivo para pantallas redondas
+            padding: EdgeInsets.symmetric(
+              horizontal: screenSize.width * (isRound ? 0.1 : 0.04),
+              vertical: screenSize.height * (isRound ? 0.08 : 0.02),
+            ),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment:
+                  CrossAxisAlignment.center, // Centrar todo el contenido
               children: [
-                _buildHeader(screenSize),
-                SizedBox(height: screenSize.height * 0.025),
-                _buildStatsCards(screenSize),
-                SizedBox(height: screenSize.height * 0.025),
-                _buildTableHeader(screenSize),
-                SizedBox(height: screenSize.height * 0.015),
-                Expanded(child: _buildTable(screenSize)),
+                _buildHeader(screenSize, isRound),
+                SizedBox(height: screenSize.height * (isRound ? 0.015 : 0.025)),
+                _buildStatsCards(screenSize, isRound),
+                SizedBox(height: screenSize.height * (isRound ? 0.015 : 0.025)),
+                _buildTableHeader(screenSize, isRound),
+                SizedBox(height: screenSize.height * (isRound ? 0.01 : 0.015)),
+                Expanded(child: _buildTable(screenSize, isRound)),
+                // Espaciado inferior para pantallas redondas
+                if (isRound) SizedBox(height: screenSize.height * 0.02),
               ],
             ),
           ),
@@ -82,55 +95,105 @@ class _CaloriesTableScreenState extends State<CaloriesTableScreen>
     );
   }
 
-  Widget _buildHeader(Size screenSize) {
-    return Row(
-      children: [
-        GestureDetector(
-          onTap: () => Navigator.pop(context),
-          child: Container(
-            padding: EdgeInsets.all(screenSize.width * 0.025),
-            decoration: BoxDecoration(
-              color: Colors.blue.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: Colors.blue.withOpacity(0.3)),
-            ),
-            child: Icon(
-              Icons.arrow_back,
-              color: Colors.blue.shade300,
-              size: screenSize.width * 0.07,
+  Widget _buildHeader(Size screenSize, bool isRound) {
+    if (isRound) {
+      // Para pantallas redondas: layout centrado
+      return Column(
+        children: [
+          // Botón de regreso centrado arriba
+          GestureDetector(
+            onTap: () => Navigator.pop(context),
+            child: Container(
+              padding: EdgeInsets.all(screenSize.width * 0.018),
+              decoration: BoxDecoration(
+                color: Colors.blue.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.blue.withOpacity(0.3)),
+              ),
+              child: Icon(
+                Icons.arrow_back,
+                color: Colors.blue.shade300,
+                size: screenSize.width * 0.055,
+              ),
             ),
           ),
-        ),
-        SizedBox(width: screenSize.width * 0.03),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          SizedBox(height: screenSize.height * 0.015),
+          // Títulos centrados
+          Column(
             children: [
               Text(
                 'Historial de Calorías',
                 style: TextStyle(
-                  fontSize: screenSize.width * 0.055,
+                  fontSize: screenSize.width * 0.042,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
                 ),
-                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
               ),
+              SizedBox(height: screenSize.height * 0.005),
               Text(
                 'Seguimiento diario de actividad',
                 style: TextStyle(
-                  fontSize: screenSize.width * 0.032,
+                  fontSize: screenSize.width * 0.025,
                   color: Colors.grey.shade400,
                 ),
-                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
               ),
             ],
           ),
-        ),
-      ],
-    );
+        ],
+      );
+    } else {
+      // Para pantallas cuadradas: layout horizontal original
+      return Row(
+        children: [
+          GestureDetector(
+            onTap: () => Navigator.pop(context),
+            child: Container(
+              padding: EdgeInsets.all(screenSize.width * 0.025),
+              decoration: BoxDecoration(
+                color: Colors.blue.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.blue.withOpacity(0.3)),
+              ),
+              child: Icon(
+                Icons.arrow_back,
+                color: Colors.blue.shade300,
+                size: screenSize.width * 0.07,
+              ),
+            ),
+          ),
+          SizedBox(width: screenSize.width * 0.03),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Historial de Calorías',
+                  style: TextStyle(
+                    fontSize: screenSize.width * 0.055,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  'Seguimiento diario de actividad',
+                  style: TextStyle(
+                    fontSize: screenSize.width * 0.032,
+                    color: Colors.grey.shade400,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
   }
 
-  Widget _buildStatsCards(Size screenSize) {
+  Widget _buildStatsCards(Size screenSize, bool isRound) {
     final totalCalories = _records.fold<double>(
       0,
       (sum, record) => sum + record.calories,
@@ -149,9 +212,10 @@ class _CaloriesTableScreenState extends State<CaloriesTableScreen>
             'cal',
             Colors.blue,
             screenSize,
+            isRound,
           ),
         ),
-        SizedBox(width: screenSize.width * 0.02),
+        SizedBox(width: screenSize.width * (isRound ? 0.012 : 0.02)),
         Expanded(
           child: _buildStatCard(
             'Promedio',
@@ -159,9 +223,10 @@ class _CaloriesTableScreenState extends State<CaloriesTableScreen>
             'cal/día',
             Colors.green,
             screenSize,
+            isRound,
           ),
         ),
-        SizedBox(width: screenSize.width * 0.02),
+        SizedBox(width: screenSize.width * (isRound ? 0.012 : 0.02)),
         Expanded(
           child: _buildStatCard(
             'Metas',
@@ -169,6 +234,7 @@ class _CaloriesTableScreenState extends State<CaloriesTableScreen>
             'días',
             Colors.orange,
             screenSize,
+            isRound,
           ),
         ),
       ],
@@ -181,12 +247,13 @@ class _CaloriesTableScreenState extends State<CaloriesTableScreen>
     String unit,
     Color color,
     Size screenSize,
+    bool isRound,
   ) {
     return Container(
-      padding: EdgeInsets.all(screenSize.width * 0.03),
+      padding: EdgeInsets.all(screenSize.width * (isRound ? 0.02 : 0.03)),
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(isRound ? 6 : 10),
         border: Border.all(color: color.withOpacity(0.3)),
       ),
       child: Column(
@@ -194,17 +261,17 @@ class _CaloriesTableScreenState extends State<CaloriesTableScreen>
           Text(
             title,
             style: TextStyle(
-              fontSize: screenSize.width * 0.028,
+              fontSize: screenSize.width * (isRound ? 0.022 : 0.028),
               color: color.withOpacity(0.8),
               fontWeight: FontWeight.w500,
             ),
             overflow: TextOverflow.ellipsis,
           ),
-          SizedBox(height: 3),
+          SizedBox(height: 2),
           Text(
             value,
             style: TextStyle(
-              fontSize: screenSize.width * 0.04,
+              fontSize: screenSize.width * (isRound ? 0.032 : 0.04),
               fontWeight: FontWeight.bold,
               color: color,
             ),
@@ -213,7 +280,7 @@ class _CaloriesTableScreenState extends State<CaloriesTableScreen>
           Text(
             unit,
             style: TextStyle(
-              fontSize: screenSize.width * 0.022,
+              fontSize: screenSize.width * (isRound ? 0.017 : 0.022),
               color: color.withOpacity(0.7),
             ),
             overflow: TextOverflow.ellipsis,
@@ -223,15 +290,15 @@ class _CaloriesTableScreenState extends State<CaloriesTableScreen>
     );
   }
 
-  Widget _buildTableHeader(Size screenSize) {
+  Widget _buildTableHeader(Size screenSize, bool isRound) {
     return Container(
       padding: EdgeInsets.symmetric(
-        horizontal: screenSize.width * 0.03,
-        vertical: screenSize.height * 0.012,
+        horizontal: screenSize.width * (isRound ? 0.02 : 0.03),
+        vertical: screenSize.height * (isRound ? 0.008 : 0.012),
       ),
       decoration: BoxDecoration(
         color: Colors.grey.shade900,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(isRound ? 5 : 8),
         border: Border.all(color: Colors.grey.shade700),
       ),
       child: Row(
@@ -241,7 +308,7 @@ class _CaloriesTableScreenState extends State<CaloriesTableScreen>
             child: Text(
               'Fecha',
               style: TextStyle(
-                fontSize: screenSize.width * 0.032,
+                fontSize: screenSize.width * (isRound ? 0.025 : 0.032),
                 fontWeight: FontWeight.w600,
                 color: Colors.grey.shade300,
               ),
@@ -254,7 +321,7 @@ class _CaloriesTableScreenState extends State<CaloriesTableScreen>
               'Calorías',
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: screenSize.width * 0.032,
+                fontSize: screenSize.width * (isRound ? 0.025 : 0.032),
                 fontWeight: FontWeight.w600,
                 color: Colors.grey.shade300,
               ),
@@ -267,7 +334,7 @@ class _CaloriesTableScreenState extends State<CaloriesTableScreen>
               'Estado',
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: screenSize.width * 0.032,
+                fontSize: screenSize.width * (isRound ? 0.025 : 0.032),
                 fontWeight: FontWeight.w600,
                 color: Colors.grey.shade300,
               ),
@@ -279,7 +346,7 @@ class _CaloriesTableScreenState extends State<CaloriesTableScreen>
     );
   }
 
-  Widget _buildTable(Size screenSize) {
+  Widget _buildTable(Size screenSize, bool isRound) {
     if (_records.isEmpty) {
       return Center(
         child: Column(
@@ -287,23 +354,23 @@ class _CaloriesTableScreenState extends State<CaloriesTableScreen>
           children: [
             Icon(
               Icons.fitness_center_outlined,
-              size: screenSize.width * 0.12,
+              size: screenSize.width * (isRound ? 0.08 : 0.12),
               color: Colors.grey.shade600,
             ),
-            SizedBox(height: screenSize.height * 0.02),
+            SizedBox(height: screenSize.height * (isRound ? 0.01 : 0.02)),
             Text(
               'No hay datos disponibles',
               style: TextStyle(
-                fontSize: screenSize.width * 0.035,
+                fontSize: screenSize.width * (isRound ? 0.028 : 0.035),
                 color: Colors.grey.shade500,
               ),
               textAlign: TextAlign.center,
             ),
-            SizedBox(height: screenSize.height * 0.01),
+            SizedBox(height: screenSize.height * (isRound ? 0.005 : 0.01)),
             Text(
               'Comienza a hacer ejercicio para ver tu progreso',
               style: TextStyle(
-                fontSize: screenSize.width * 0.028,
+                fontSize: screenSize.width * (isRound ? 0.022 : 0.028),
                 color: Colors.grey.shade600,
               ),
               textAlign: TextAlign.center,
@@ -314,29 +381,38 @@ class _CaloriesTableScreenState extends State<CaloriesTableScreen>
     }
 
     return ListView.builder(
+      // Padding interno para evitar que se corten los elementos
+      padding: EdgeInsets.only(bottom: isRound ? screenSize.height * 0.02 : 0),
       itemCount: _records.length,
       itemBuilder: (context, index) {
         final record = _records[index];
-        return _buildTableRow(record, screenSize, index);
+        return _buildTableRow(record, screenSize, index, isRound);
       },
     );
   }
 
-  Widget _buildTableRow(DailyCalories record, Size screenSize, int index) {
+  Widget _buildTableRow(
+    DailyCalories record,
+    Size screenSize,
+    int index,
+    bool isRound,
+  ) {
     final isToday = _isToday(record.date);
     final progressColor = ColorUtils.getProgressColor(record.calories);
 
     return Container(
-      margin: EdgeInsets.only(bottom: screenSize.height * 0.008),
+      margin: EdgeInsets.only(
+        bottom: screenSize.height * (isRound ? 0.005 : 0.008),
+      ),
       padding: EdgeInsets.symmetric(
-        horizontal: screenSize.width * 0.03,
-        vertical: screenSize.height * 0.012,
+        horizontal: screenSize.width * (isRound ? 0.02 : 0.03),
+        vertical: screenSize.height * (isRound ? 0.008 : 0.012),
       ),
       decoration: BoxDecoration(
         color: isToday
             ? progressColor.withOpacity(0.1)
             : Colors.grey.shade900.withOpacity(0.5),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(isRound ? 5 : 8),
         border: Border.all(
           color: isToday
               ? progressColor.withOpacity(0.4)
@@ -353,7 +429,7 @@ class _CaloriesTableScreenState extends State<CaloriesTableScreen>
                 Text(
                   record.formattedDate,
                   style: TextStyle(
-                    fontSize: screenSize.width * 0.032,
+                    fontSize: screenSize.width * (isRound ? 0.025 : 0.032),
                     fontWeight: isToday ? FontWeight.w600 : FontWeight.w500,
                     color: isToday ? progressColor : Colors.grey.shade300,
                   ),
@@ -363,7 +439,7 @@ class _CaloriesTableScreenState extends State<CaloriesTableScreen>
                   Text(
                     'Hoy',
                     style: TextStyle(
-                      fontSize: screenSize.width * 0.024,
+                      fontSize: screenSize.width * (isRound ? 0.018 : 0.024),
                       color: progressColor.withOpacity(0.8),
                     ),
                     overflow: TextOverflow.ellipsis,
@@ -379,18 +455,18 @@ class _CaloriesTableScreenState extends State<CaloriesTableScreen>
                   '${record.calories.toInt()}',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontSize: screenSize.width * 0.035,
+                    fontSize: screenSize.width * (isRound ? 0.028 : 0.035),
                     fontWeight: FontWeight.bold,
                     color: progressColor,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
-                SizedBox(height: 4),
+                SizedBox(height: 3),
                 Container(
-                  width: screenSize.width * 0.12,
-                  height: 3,
+                  width: screenSize.width * (isRound ? 0.08 : 0.12),
+                  height: isRound ? 2 : 3,
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(2),
+                    borderRadius: BorderRadius.circular(1),
                     color: progressColor.withOpacity(0.2),
                   ),
                   child: FractionallySizedBox(
@@ -398,7 +474,7 @@ class _CaloriesTableScreenState extends State<CaloriesTableScreen>
                     widthFactor: (record.calories / 300.0).clamp(0.0, 1.0),
                     child: Container(
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(2),
+                        borderRadius: BorderRadius.circular(1),
                         color: progressColor,
                       ),
                     ),
@@ -416,7 +492,7 @@ class _CaloriesTableScreenState extends State<CaloriesTableScreen>
               color: record.goalReached
                   ? Colors.green.shade400
                   : Colors.grey.shade600,
-              size: screenSize.width * 0.045,
+              size: screenSize.width * (isRound ? 0.035 : 0.045),
             ),
           ),
         ],

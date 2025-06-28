@@ -5,11 +5,13 @@ import '../utils/color_utils.dart';
 class CenterContent extends StatelessWidget {
   final FitnessData fitnessData;
   final double watchSize;
+  final bool isRound;
 
   const CenterContent({
     super.key,
     required this.fitnessData,
     required this.watchSize,
+    this.isRound = false,
   });
 
   @override
@@ -22,8 +24,8 @@ class CenterContent extends StatelessWidget {
         children: [
           // Contador principal de calorías
           Container(
-            width: watchSize * 0.35,
-            height: watchSize * 0.35,
+            width: watchSize * (isRound ? 0.34 : 0.35),
+            height: watchSize * (isRound ? 0.34 : 0.35),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: accentColor.withOpacity(0.12),
@@ -42,13 +44,13 @@ class CenterContent extends StatelessWidget {
                 Icon(
                   Icons.local_fire_department,
                   color: accentColor,
-                  size: watchSize * 0.05,
+                  size: watchSize * (isRound ? 0.048 : 0.05),
                 ),
                 SizedBox(height: watchSize * 0.005),
                 Text(
                   fitnessData.calories.toStringAsFixed(0),
                   style: TextStyle(
-                    fontSize: watchSize * 0.09,
+                    fontSize: watchSize * (isRound ? 0.085 : 0.09),
                     fontWeight: FontWeight.bold,
                     color: accentColor,
                     shadows: [
@@ -62,7 +64,7 @@ class CenterContent extends StatelessWidget {
                 Text(
                   'CALORÍAS',
                   style: TextStyle(
-                    fontSize: watchSize * 0.018,
+                    fontSize: watchSize * (isRound ? 0.017 : 0.018),
                     color: accentColor.withOpacity(0.8),
                     letterSpacing: 1.0,
                     fontWeight: FontWeight.w500,
@@ -72,13 +74,13 @@ class CenterContent extends StatelessWidget {
             ),
           ),
 
-          SizedBox(height: watchSize * 0.02),
+          SizedBox(height: watchSize * (isRound ? 0.018 : 0.02)),
 
-          // Ritmo cardíaco - más grande
+          // Ritmo cardíaco - optimizado para ambos tipos de pantalla
           Container(
             padding: EdgeInsets.symmetric(
-              horizontal: watchSize * 0.03,
-              vertical: watchSize * 0.015,
+              horizontal: watchSize * (isRound ? 0.028 : 0.03),
+              vertical: watchSize * (isRound ? 0.014 : 0.015),
             ),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(watchSize * 0.015),
@@ -91,7 +93,7 @@ class CenterContent extends StatelessWidget {
             child: Text(
               '♥ ${fitnessData.heartRate}',
               style: TextStyle(
-                fontSize: watchSize * 0.035, // Aumentado de 0.025 a 0.035
+                fontSize: watchSize * (isRound ? 0.034 : 0.035),
                 fontWeight: FontWeight.w600,
                 color: _getHeartRateColor(),
               ),

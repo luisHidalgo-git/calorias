@@ -12,10 +12,13 @@ class TimeDisplay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenSize = MediaQuery.of(context).size;
+    final isRound = _isRoundScreen(screenSize);
+
     return Container(
       padding: EdgeInsets.symmetric(
-        horizontal: watchSize * 0.04,
-        vertical: watchSize * 0.015,
+        horizontal: watchSize * (isRound ? 0.038 : 0.04),
+        vertical: watchSize * (isRound ? 0.014 : 0.015),
       ),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(watchSize * 0.025),
@@ -36,7 +39,7 @@ class TimeDisplay extends StatelessWidget {
           return Text(
             '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}',
             style: TextStyle(
-              fontSize: watchSize * 0.05,
+              fontSize: watchSize * (isRound ? 0.047 : 0.05),
               fontWeight: FontWeight.w300,
               color: accentColor,
               letterSpacing: 2.0,
@@ -45,5 +48,10 @@ class TimeDisplay extends StatelessWidget {
         },
       ),
     );
+  }
+
+  bool _isRoundScreen(Size screenSize) {
+    final aspectRatio = screenSize.width / screenSize.height;
+    return (aspectRatio > 0.9 && aspectRatio < 1.1);
   }
 }

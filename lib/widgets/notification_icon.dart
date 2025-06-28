@@ -42,7 +42,8 @@ class _NotificationIconState extends State<NotificationIcon>
     super.didUpdateWidget(oldWidget);
     if (widget.notifications.isNotEmpty && oldWidget.notifications.isEmpty) {
       _pulseController.repeat(reverse: true);
-    } else if (widget.notifications.isEmpty && oldWidget.notifications.isNotEmpty) {
+    } else if (widget.notifications.isEmpty &&
+        oldWidget.notifications.isNotEmpty) {
       _pulseController.stop();
       _pulseController.reset();
     }
@@ -57,6 +58,7 @@ class _NotificationIconState extends State<NotificationIcon>
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
+    final isRound = _isRoundScreen(screenSize);
     final hasNotifications = widget.notifications.isNotEmpty;
 
     return GestureDetector(
@@ -67,34 +69,38 @@ class _NotificationIconState extends State<NotificationIcon>
           return Transform.scale(
             scale: hasNotifications ? _pulseAnimation.value : 1.0,
             child: Container(
-              padding: EdgeInsets.all(screenSize.width * 0.025),
+              padding: EdgeInsets.all(
+                screenSize.width * (isRound ? 0.02 : 0.025),
+              ),
               decoration: BoxDecoration(
-                color: hasNotifications 
-                    ? Colors.red.withOpacity(0.15) 
+                color: hasNotifications
+                    ? Colors.red.withOpacity(0.15)
                     : Colors.grey.withOpacity(0.1),
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: hasNotifications 
-                      ? Colors.red.withOpacity(0.4) 
+                  color: hasNotifications
+                      ? Colors.red.withOpacity(0.4)
                       : Colors.grey.withOpacity(0.3),
                   width: 2,
                 ),
-                boxShadow: hasNotifications ? [
-                  BoxShadow(
-                    color: Colors.red.withOpacity(0.3),
-                    blurRadius: 8,
-                    spreadRadius: 1,
-                  ),
-                ] : null,
+                boxShadow: hasNotifications
+                    ? [
+                        BoxShadow(
+                          color: Colors.red.withOpacity(0.3),
+                          blurRadius: 8,
+                          spreadRadius: 1,
+                        ),
+                      ]
+                    : null,
               ),
               child: Stack(
                 children: [
                   Icon(
                     Icons.notifications_outlined,
-                    color: hasNotifications 
-                        ? Colors.red.shade400 
+                    color: hasNotifications
+                        ? Colors.red.shade400
                         : Colors.grey.shade500,
-                    size: screenSize.width * 0.06,
+                    size: screenSize.width * (isRound ? 0.05 : 0.06),
                   ),
                   if (hasNotifications)
                     Positioned(
@@ -107,14 +113,16 @@ class _NotificationIconState extends State<NotificationIcon>
                           shape: BoxShape.circle,
                         ),
                         constraints: BoxConstraints(
-                          minWidth: screenSize.width * 0.04,
-                          minHeight: screenSize.width * 0.04,
+                          minWidth: screenSize.width * (isRound ? 0.035 : 0.04),
+                          minHeight:
+                              screenSize.width * (isRound ? 0.035 : 0.04),
                         ),
                         child: Text(
                           '${widget.notifications.length}',
                           style: TextStyle(
                             color: Colors.white,
-                            fontSize: screenSize.width * 0.025,
+                            fontSize:
+                                screenSize.width * (isRound ? 0.022 : 0.025),
                             fontWeight: FontWeight.bold,
                           ),
                           textAlign: TextAlign.center,
@@ -128,5 +136,10 @@ class _NotificationIconState extends State<NotificationIcon>
         },
       ),
     );
+  }
+
+  bool _isRoundScreen(Size screenSize) {
+    final aspectRatio = screenSize.width / screenSize.height;
+    return (aspectRatio > 0.9 && aspectRatio < 1.1);
   }
 }
