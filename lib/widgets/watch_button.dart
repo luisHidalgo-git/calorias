@@ -23,7 +23,7 @@ class WatchButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
     final isRound = ScreenUtils.isRoundScreen(screenSize);
-    
+
     final adaptiveSize = ScreenUtils.getAdaptiveSize(screenSize, size);
     final adaptivePadding = adaptiveSize * 0.022;
     final adaptiveIconSize = adaptiveSize * 0.042;
@@ -46,33 +46,45 @@ class WatchButton extends StatelessWidget {
         ),
         child: Stack(
           children: [
-            Icon(
-              icon,
-              color: color,
-              size: adaptiveIconSize,
-            ),
+            Icon(icon, color: color, size: adaptiveIconSize),
             if (showBadge && badgeText != null)
               Positioned(
-                right: 0,
-                top: 0,
+                right: -2,
+                top: -2,
                 child: Container(
-                  padding: EdgeInsets.all(2),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: screenSize.width * (isRound ? 0.012 : 0.015),
+                    vertical: screenSize.width * (isRound ? 0.008 : 0.01),
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.red,
-                    shape: BoxShape.circle,
+                    borderRadius: BorderRadius.circular(
+                      screenSize.width * 0.025,
+                    ),
+                    border: Border.all(color: Colors.white, width: 1),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.3),
+                        blurRadius: 4,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
                   ),
                   constraints: BoxConstraints(
-                    minWidth: screenSize.width * (isRound ? 0.035 : 0.04),
-                    minHeight: screenSize.width * (isRound ? 0.035 : 0.04),
+                    minWidth: screenSize.width * (isRound ? 0.045 : 0.05),
+                    minHeight: screenSize.width * (isRound ? 0.045 : 0.05),
                   ),
-                  child: Text(
-                    badgeText!,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: screenSize.width * (isRound ? 0.022 : 0.025),
-                      fontWeight: FontWeight.bold,
+                  child: Center(
+                    child: Text(
+                      badgeText!,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: screenSize.width * (isRound ? 0.025 : 0.028),
+                        fontWeight: FontWeight.bold,
+                        height: 1.0,
+                      ),
+                      textAlign: TextAlign.center,
                     ),
-                    textAlign: TextAlign.center,
                   ),
                 ),
               ),

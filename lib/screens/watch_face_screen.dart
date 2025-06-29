@@ -84,7 +84,7 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
         setState(() {
           double increment = 1.0 + (math.Random().nextDouble() * 2.0);
           fitnessData.addCalories(increment);
-          
+
           // Notificar al servicio de calorías
           _calorieService.addCalories(increment, fitnessData);
         });
@@ -100,15 +100,17 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
     Navigator.push(
       context,
       PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) => CaloriesTableScreen(),
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            CaloriesTableScreen(),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           const begin = Offset(1.0, 0.0);
           const end = Offset.zero;
           const curve = Curves.easeInOut;
 
-          var tween = Tween(begin: begin, end: end).chain(
-            CurveTween(curve: curve),
-          );
+          var tween = Tween(
+            begin: begin,
+            end: end,
+          ).chain(CurveTween(curve: curve));
 
           return SlideTransition(
             position: animation.drive(tween),
@@ -143,9 +145,9 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
     final screenHeight = screenSize.height;
     final screenWidth = screenSize.width;
     final isRound = ScreenUtils.isRoundScreen(screenSize);
-    
+
     // Ajustar el tamaño del reloj según el tipo de pantalla
-    final watchSize = isRound 
+    final watchSize = isRound
         ? math.min(screenWidth, screenHeight) * 0.68
         : math.min(screenWidth, screenHeight) * 0.7;
 
@@ -182,10 +184,10 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
                 children: [
                   // Botones posicionados de manera adaptativa
                   if (isRound) ...[
-                    // Para pantallas redondas, posicionar en la zona segura
+                    // Para pantallas redondas, posicionar más hacia el centro
                     Positioned(
-                      top: screenHeight * 0.12,
-                      left: screenWidth * 0.12,
+                      top: screenHeight * 0.18,
+                      left: screenWidth * 0.18,
                       child: WatchButton(
                         onTap: _navigateToTable,
                         icon: Icons.table_chart_outlined,
@@ -194,8 +196,8 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
                       ),
                     ),
                     Positioned(
-                      top: screenHeight * 0.12,
-                      right: screenWidth * 0.12,
+                      top: screenHeight * 0.18,
+                      right: screenWidth * 0.18,
                       child: NotificationIcon(
                         notifications: _notifications,
                         onTap: _showNotificationsPanel,
@@ -226,18 +228,24 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
                   // Contenido principal adaptativo
                   Padding(
                     padding: EdgeInsets.symmetric(
-                      horizontal: isRound ? screenWidth * 0.06 : screenWidth * 0.05,
-                      vertical: isRound ? screenHeight * 0.03 : screenHeight * 0.02,
+                      horizontal: isRound
+                          ? screenWidth * 0.06
+                          : screenWidth * 0.05,
+                      vertical: isRound
+                          ? screenHeight * 0.03
+                          : screenHeight * 0.02,
                     ),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
                         // Espaciado superior para pantallas redondas
-                        if (isRound)
-                          SizedBox(height: screenHeight * 0.03),
-                        
+                        if (isRound) SizedBox(height: screenHeight * 0.05),
+
                         // Hora en la parte superior
-                        TimeDisplay(watchSize: watchSize, accentColor: accentColor),
+                        TimeDisplay(
+                          watchSize: watchSize,
+                          accentColor: accentColor,
+                        ),
 
                         // Texto motivacional
                         _buildMotivationalText(watchSize, accentColor, isRound),
@@ -283,15 +291,26 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
                         // Información inferior
                         Column(
                           children: [
-                            _buildProgressIndicator(watchSize, progressColor, isRound),
-                            SizedBox(height: isRound ? screenHeight * 0.008 : screenHeight * 0.015),
-                            _buildActivityDescription(watchSize, accentColor, isRound),
+                            _buildProgressIndicator(
+                              watchSize,
+                              progressColor,
+                              isRound,
+                            ),
+                            SizedBox(
+                              height: isRound
+                                  ? screenHeight * 0.008
+                                  : screenHeight * 0.015,
+                            ),
+                            _buildActivityDescription(
+                              watchSize,
+                              accentColor,
+                              isRound,
+                            ),
                           ],
                         ),
-                        
+
                         // Espaciado inferior para pantallas redondas
-                        if (isRound)
-                          SizedBox(height: screenHeight * 0.015),
+                        if (isRound) SizedBox(height: screenHeight * 0.015),
                       ],
                     ),
                   ),
@@ -304,7 +323,11 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
     );
   }
 
-  Widget _buildMotivationalText(double watchSize, Color accentColor, bool isRound) {
+  Widget _buildMotivationalText(
+    double watchSize,
+    Color accentColor,
+    bool isRound,
+  ) {
     final motivationalText = ColorUtils.getMotivationalText(
       fitnessData.calories,
     );
@@ -367,7 +390,11 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
     );
   }
 
-  Widget _buildActivityDescription(double watchSize, Color accentColor, bool isRound) {
+  Widget _buildActivityDescription(
+    double watchSize,
+    Color accentColor,
+    bool isRound,
+  ) {
     final description = ColorUtils.getActivityDescription(fitnessData.calories);
 
     return Container(
