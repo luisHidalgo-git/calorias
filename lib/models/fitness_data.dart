@@ -9,8 +9,21 @@ class FitnessData {
 
   void addCalories(double amount) {
     _calories += amount;
-    // Ritmo cardíaco más realista basado en la actividad
-    _heartRate = _calculateHeartRate();
+
+    // Si alcanza o supera el 100% del objetivo, reiniciar
+    if (_calories >= dailyCaloriesGoal) {
+      _resetGoal();
+    } else {
+      // Ritmo cardíaco más realista basado en la actividad
+      _heartRate = _calculateHeartRate();
+    }
+  }
+
+  void _resetGoal() {
+    // Reiniciar calorías a 0
+    _calories = 0.0;
+    // Reiniciar ritmo cardíaco a valor base
+    _heartRate = 72;
   }
 
   int _calculateHeartRate() {
