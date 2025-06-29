@@ -18,6 +18,19 @@ class FitnessData {
     _maxHeartRate = newMaxHR;
   }
 
+  // Nuevos métodos para establecer valores directamente
+  void setCalories(double newCalories) {
+    _calories = newCalories.clamp(0.0, _dailyCaloriesGoal);
+    _heartRate = _calculateHeartRate();
+  }
+
+  void setHeartRate(int newHeartRate) {
+    _heartRate = newHeartRate.clamp(60, _maxHeartRate);
+    // Calcular calorías proporcionales al nuevo BPM
+    final proportion = (_heartRate - 60) / (_maxHeartRate - 60);
+    _calories = (proportion * _dailyCaloriesGoal).clamp(0.0, _dailyCaloriesGoal);
+  }
+
   void addCalories(double amount) {
     _calories += amount;
 
@@ -39,14 +52,14 @@ class FitnessData {
 
   int _calculateHeartRate() {
     // Cálculo más realista del ritmo cardíaco
-    double baseRate = 72.0;
+    double baseRate = 60.0; // Ritmo cardíaco en reposo
     double activityMultiplier = (_calories / _dailyCaloriesGoal).clamp(
       0.0,
       1.0,
     );
 
     // El ritmo cardíaco aumenta gradualmente con la actividad
-    double targetRate = baseRate + (activityMultiplier * 50); // Máximo 122 bpm
+    double targetRate = baseRate + (activityMultiplier * (_maxHeartRate - baseRate));
 
     return targetRate.round().clamp(60, _maxHeartRate);
   }
@@ -78,5 +91,13 @@ class FitnessData {
     if (settings.containsKey('maxHeartRate')) {
       _maxHeartRate = settings['maxHeartRate'];
     }
+  }
+
+  // Método para obtener información de proporción
+  String getProportionInfo() {
+    final caloriePercent = (progressPercentage * 100).toStringAsFixed(0);
+    final heartRatePercent = ((_heartRate - 60) / (_maxHeartRate - 60) * 100).toStringAsFixed(0);
+    
+    return '${_calories.toStringAsFixed(0)} cal = ${_heartRate} BPM = $caloriePercent% objetivo';
   }
 }

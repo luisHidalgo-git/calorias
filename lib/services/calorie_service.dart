@@ -39,6 +39,24 @@ class CalorieService {
     }
   }
 
+  // Nuevo método para actualizar calorías actuales sin agregar entrada
+  void updateCurrentCalories(double totalCalories, FitnessData fitnessData) {
+    _updateTodayRecord(totalCalories);
+    
+    // Crear una entrada de ajuste manual si es significativo
+    if (_todayEntries.isNotEmpty) {
+      final now = DateTime.now();
+      final entry = CalorieEntry(
+        timestamp: now,
+        calories: 0, // No agregar calorías, solo registrar el ajuste
+        description: 'Ajuste manual: ${totalCalories.toStringAsFixed(0)} cal',
+      );
+      
+      // No agregar a las notificaciones para ajustes manuales
+      // _newEntryController.add(entry);
+    }
+  }
+
   void resetDailyProgress() {
     // Limpiar las entradas del día actual
     _todayEntries.clear();

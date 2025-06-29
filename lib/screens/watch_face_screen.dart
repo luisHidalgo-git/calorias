@@ -12,6 +12,7 @@ import '../widgets/notifications_panel.dart';
 import '../widgets/watch_button.dart';
 import '../widgets/adaptive_text.dart';
 import '../widgets/branded_logo.dart';
+import '../widgets/value_adjustment_dialog.dart';
 import '../utils/color_utils.dart';
 import '../utils/screen_utils.dart';
 import '../utils/device_utils.dart';
@@ -318,6 +319,50 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
             _notifications.clear();
           });
           Navigator.pop(context);
+        },
+      ),
+    );
+  }
+
+  // Nuevos métodos para ajustar valores
+  void _showCaloriesAdjustment() {
+    showDialog(
+      context: context,
+      builder: (context) => ValueAdjustmentDialog(
+        title: 'Ajustar Calorías',
+        currentValue: fitnessData.calories,
+        maxValue: fitnessData.dailyCaloriesGoal,
+        unit: 'cal',
+        icon: Icons.local_fire_department,
+        color: ColorUtils.getProgressColor(fitnessData.calories),
+        onValueChanged: (newValue) {
+          setState(() {
+            fitnessData.setCalories(newValue);
+            _calorieService.updateCurrentCalories(newValue, fitnessData);
+          });
+        },
+      ),
+    );
+  }
+
+  void _showHeartRateAdjustment() {
+    showDialog(
+      context: context,
+      builder: (context) => ValueAdjustmentDialog(
+        title: 'Ajustar Ritmo Cardíaco',
+        currentValue: fitnessData.heartRate.toDouble(),
+        maxValue: fitnessData.maxHeartRate.toDouble(),
+        unit: 'BPM',
+        icon: Icons.favorite,
+        color: _getHeartRateColor(),
+        onValueChanged: (newValue) {
+          setState(() {
+            fitnessData.setHeartRate(newValue.toInt());
+            _calorieService.updateCurrentCalories(
+              fitnessData.calories,
+              fitnessData,
+            );
+          });
         },
       ),
     );
@@ -707,50 +752,82 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        // Anillo de progreso grande
+        // Anillo de progreso grande - CLICKEABLE
         AnimatedBuilder(
           animation: Listenable.merge([_pulseAnimation, _goalReachedAnimation]),
           builder: (context, child) {
             return Transform.scale(
               scale: _pulseAnimation.value * _goalReachedAnimation.value,
-              child: SizedBox(
-                width: progressSize,
-                height: progressSize,
-                child: Stack(
-                  children: [
-                    ProgressRing(
-                      progress:
-                          fitnessData.calories / fitnessData.dailyCaloriesGoal,
-                      color: progressColor,
-                      strokeWidth: 16,
-                      radius: progressSize * 0.4,
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: _showCaloriesAdjustment,
+                  borderRadius: BorderRadius.circular(progressSize / 2),
+                  child: Container(
+                    width: progressSize,
+                    height: progressSize,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.transparent,
                     ),
-                    Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.local_fire_department,
-                            color: accentColor,
-                            size: progressSize * 0.12,
+                    child: Stack(
+                      children: [
+                        ProgressRing(
+                          progress:
+                              fitnessData.calories /
+                              fitnessData.dailyCaloriesGoal,
+                          color: progressColor,
+                          strokeWidth: 16,
+                          radius: progressSize * 0.4,
+                        ),
+                        Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.local_fire_department,
+                                color: accentColor,
+                                size: progressSize * 0.12,
+                              ),
+                              SizedBox(height: 8),
+                              AdaptiveText(
+                                fitnessData.calories.toStringAsFixed(0),
+                                fontSize: progressSize * 0.15,
+                                fontWeight: FontWeight.bold,
+                                color: accentColor,
+                              ),
+                              AdaptiveText(
+                                'CALORÍAS',
+                                fontSize: progressSize * 0.04,
+                                color: accentColor.withOpacity(0.8),
+                                style: TextStyle(letterSpacing: 2.0),
+                              ),
+                              SizedBox(height: 8),
+                              Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: accentColor.withOpacity(0.15),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: accentColor.withOpacity(0.3),
+                                  ),
+                                ),
+                                child: AdaptiveText(
+                                  'Toca para ajustar',
+                                  fontSize: progressSize * 0.03,
+                                  color: accentColor.withOpacity(0.8),
+                                  style: TextStyle(fontStyle: FontStyle.italic),
+                                ),
+                              ),
+                            ],
                           ),
-                          SizedBox(height: 8),
-                          AdaptiveText(
-                            fitnessData.calories.toStringAsFixed(0),
-                            fontSize: progressSize * 0.15,
-                            fontWeight: FontWeight.bold,
-                            color: accentColor,
-                          ),
-                          AdaptiveText(
-                            'CALORÍAS',
-                            fontSize: progressSize * 0.04,
-                            color: accentColor.withOpacity(0.8),
-                            style: TextStyle(letterSpacing: 2.0),
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
             );
@@ -759,26 +836,60 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
 
         SizedBox(height: screenSize.height * 0.04),
 
-        // Ritmo cardíaco
-        Container(
-          padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          decoration: BoxDecoration(
+        // Ritmo cardíaco - CLICKEABLE
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: _showHeartRateAdjustment,
             borderRadius: BorderRadius.circular(16),
-            color: _getHeartRateColor().withOpacity(0.15),
-            border: Border.all(color: _getHeartRateColor().withOpacity(0.3)),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.favorite, color: _getHeartRateColor(), size: 24),
-              SizedBox(width: 8),
-              AdaptiveText(
-                '${fitnessData.heartRate} BPM',
-                fontSize: screenSize.width * 0.05,
-                fontWeight: FontWeight.w600,
-                color: _getHeartRateColor(),
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                color: _getHeartRateColor().withOpacity(0.15),
+                border: Border.all(
+                  color: _getHeartRateColor().withOpacity(0.3),
+                ),
               ),
-            ],
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.favorite,
+                        color: _getHeartRateColor(),
+                        size: 24,
+                      ),
+                      SizedBox(width: 8),
+                      AdaptiveText(
+                        '${fitnessData.heartRate} BPM',
+                        fontSize: screenSize.width * 0.05,
+                        fontWeight: FontWeight.w600,
+                        color: _getHeartRateColor(),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 8),
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: _getHeartRateColor().withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: _getHeartRateColor().withOpacity(0.2),
+                      ),
+                    ),
+                    child: AdaptiveText(
+                      'Toca para ajustar',
+                      fontSize: screenSize.width * 0.03,
+                      color: _getHeartRateColor().withOpacity(0.8),
+                      style: TextStyle(fontStyle: FontStyle.italic),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ],
