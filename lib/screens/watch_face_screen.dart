@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'dart:async';
 import '../models/fitness_data.dart';
 import '../services/calorie_service.dart';
+import '../services/settings_service.dart';
 import '../widgets/progress_ring.dart';
 import '../widgets/center_content.dart';
 import '../widgets/time_display.dart';
@@ -13,7 +14,9 @@ import '../widgets/adaptive_text.dart';
 import '../widgets/branded_logo.dart';
 import '../utils/color_utils.dart';
 import '../utils/screen_utils.dart';
+import '../utils/device_utils.dart';
 import 'calories_table_screen.dart';
+import 'settings_screen.dart';
 import '../models/daily_calories.dart';
 
 class WatchFaceScreen extends StatefulWidget {
@@ -27,9 +30,12 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
     with TickerProviderStateMixin {
   FitnessData fitnessData = FitnessData();
   final CalorieService _calorieService = CalorieService();
+  final SettingsService _settingsService = SettingsService();
   Timer? _activityTimer;
   List<CalorieEntry> _notifications = [];
   StreamSubscription? _newEntrySubscription;
+  StreamSubscription? _configUpdateSubscription;
+  int _currentReadingFrequency = 3; // Frecuencia actual en segundos
 
   late AnimationController _pulseController;
   late AnimationController _backgroundController;
@@ -78,6 +84,17 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
       }
     });
 
+    // Escuchar cambios de configuración
+    _configUpdateSubscription = _settingsService.configUpdateStream.listen((
+      config,
+    ) {
+      if (mounted) {
+        _applyConfigurationChanges(config);
+      }
+    });
+
+    // Cargar configuración inicial
+    _loadInitialSettings();
     _startAutomaticActivity();
   }
 
@@ -88,34 +105,130 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
     _goalReachedController.dispose();
     _activityTimer?.cancel();
     _newEntrySubscription?.cancel();
+    _configUpdateSubscription?.cancel();
     super.dispose();
   }
 
-  void _startAutomaticActivity() {
-    _activityTimer = Timer.periodic(Duration(seconds: 3), (timer) {
-      if (mounted) {
-        final previousCalories = fitnessData.calories;
-        final wasGoalReached = fitnessData.goalReached;
+  Future<void> _loadInitialSettings() async {
+    await _settingsService.loadSettings();
+    final settings = _settingsService.currentSettings;
 
-        setState(() {
-          double increment = 1.0 + (math.Random().nextDouble() * 2.0);
-          fitnessData.addCalories(increment);
-
-          // Si se alcanzó la meta, mostrar animación y reiniciar
-          if (!wasGoalReached && fitnessData.calories == 0.0) {
-            _showGoalReachedAnimation();
-            _calorieService.resetDailyProgress();
-          } else {
-            // Notificar al servicio de calorías solo si no se reinició
-            _calorieService.addCalories(increment, fitnessData);
-          }
-        });
-
-        _backgroundController.forward().then((_) {
-          _backgroundController.reverse();
-        });
-      }
+    // Aplicar configuración inicial
+    fitnessData.applySettings({
+      'dailyCaloriesGoal': settings.dailyCaloriesGoal,
+      'maxHeartRate': settings.maxHeartRate,
     });
+
+    _currentReadingFrequency = settings.readingFrequency;
+
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  void _applyConfigurationChanges(Map<String, dynamic> config) {
+    print('Aplicando cambios de configuración: $config');
+
+    // Aplicar cambios al modelo de datos
+    fitnessData.applySettings(config);
+
+    // Actualizar frecuencia de lectura si cambió
+    if (config.containsKey('readingFrequency')) {
+      final newFrequency = config['readingFrequency'] as int;
+      if (newFrequency != _currentReadingFrequency) {
+        _currentReadingFrequency = newFrequency;
+        _restartActivityTimer();
+
+        // Mostrar notificación de cambio
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.update, color: Colors.blue),
+                SizedBox(width: 8),
+                Text(
+                  'Frecuencia actualizada: cada $_currentReadingFrequency segundos',
+                ),
+              ],
+            ),
+            backgroundColor: Colors.blue.shade700,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+
+    // Mostrar notificación de cambios aplicados
+    if (config.containsKey('dailyCaloriesGoal')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.local_fire_department, color: Colors.orange),
+              SizedBox(width: 8),
+              Text(
+                'Meta actualizada: ${config['dailyCaloriesGoal'].toInt()} calorías',
+              ),
+            ],
+          ),
+          backgroundColor: Colors.orange.shade700,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+
+    if (config.containsKey('maxHeartRate')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.favorite, color: Colors.pink),
+              SizedBox(width: 8),
+              Text('Ritmo cardíaco máximo: ${config['maxHeartRate']} BPM'),
+            ],
+          ),
+          backgroundColor: Colors.pink.shade700,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+
+    setState(() {});
+  }
+
+  void _restartActivityTimer() {
+    _activityTimer?.cancel();
+    _startAutomaticActivity();
+  }
+
+  void _startAutomaticActivity() {
+    _activityTimer = Timer.periodic(
+      Duration(seconds: _currentReadingFrequency),
+      (timer) {
+        if (mounted) {
+          final previousCalories = fitnessData.calories;
+          final wasGoalReached = fitnessData.goalReached;
+
+          setState(() {
+            double increment = 1.0 + (math.Random().nextDouble() * 2.0);
+            fitnessData.addCalories(increment);
+
+            // Si se alcanzó la meta, mostrar animación y reiniciar
+            if (!wasGoalReached && fitnessData.calories == 0.0) {
+              _showGoalReachedAnimation();
+              _calorieService.resetDailyProgress();
+            } else {
+              // Notificar al servicio de calorías solo si no se reinició
+              _calorieService.addCalories(increment, fitnessData);
+            }
+          });
+
+          _backgroundController.forward().then((_) {
+            _backgroundController.reverse();
+          });
+        }
+      },
+    );
   }
 
   void _showGoalReachedAnimation() {
@@ -167,6 +280,32 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
     );
   }
 
+  void _navigateToSettings() {
+    Navigator.push(
+      context,
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            SettingsScreen(),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          const begin = Offset(0.0, 1.0);
+          const end = Offset.zero;
+          const curve = Curves.easeInOut;
+
+          var tween = Tween(
+            begin: begin,
+            end: end,
+          ).chain(CurveTween(curve: curve));
+
+          return SlideTransition(
+            position: animation.drive(tween),
+            child: child,
+          );
+        },
+        transitionDuration: Duration(milliseconds: 300),
+      ),
+    );
+  }
+
   void _showNotificationsPanel() {
     showDialog(
       context: context,
@@ -187,14 +326,12 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
-    final screenHeight = screenSize.height;
-    final screenWidth = screenSize.width;
-    final isRound = ScreenUtils.isRoundScreen(screenSize);
-
-    // Ajustar el tamaño del reloj según el tipo de pantalla
-    final watchSize = isRound
-        ? math.min(screenWidth, screenHeight) * 0.68
-        : math.min(screenWidth, screenHeight) * 0.7;
+    final deviceType = DeviceUtils.getDeviceType(
+      screenSize.width,
+      screenSize.height,
+    );
+    final layoutConfig = DeviceUtils.getLayoutConfig(deviceType);
+    final isWearable = deviceType == DeviceType.wearable;
 
     final backgroundColor = ColorUtils.getBackgroundColor(fitnessData.calories);
     final progressColor = ColorUtils.getProgressColor(fitnessData.calories);
@@ -225,164 +362,505 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
                   stops: [0.0, 0.7, 1.0],
                 ),
               ),
-              child: Stack(
-                children: [
-                  // Logo de marca sutil en la esquina
-                  Positioned(
-                    bottom: screenHeight * 0.02,
-                    right: screenWidth * 0.02,
-                    child: Opacity(
-                      opacity: 0.3,
-                      child: BrandedLogo(
-                        size: screenWidth * 0.08,
-                        animated: false,
-                      ),
+              child: isWearable
+                  ? _buildWearableLayout(
+                      screenSize,
+                      layoutConfig,
+                      accentColor,
+                      progressColor,
+                    )
+                  : _buildPhoneLayout(
+                      screenSize,
+                      layoutConfig,
+                      accentColor,
+                      progressColor,
                     ),
-                  ),
-
-                  // Botones posicionados de manera adaptativa
-                  if (isRound) ...[
-                    // Para pantallas redondas, posicionar más hacia el centro
-                    Positioned(
-                      top: screenHeight * 0.18,
-                      left: screenWidth * 0.18,
-                      child: WatchButton(
-                        onTap: _navigateToTable,
-                        icon: Icons.table_chart_outlined,
-                        color: accentColor,
-                        size: watchSize,
-                      ),
-                    ),
-                    Positioned(
-                      top: screenHeight * 0.18,
-                      right: screenWidth * 0.18,
-                      child: NotificationIcon(
-                        notifications: _notifications,
-                        onTap: _showNotificationsPanel,
-                      ),
-                    ),
-                  ] else ...[
-                    // Para pantallas cuadradas, mantener posición original
-                    Positioned(
-                      top: screenHeight * 0.02,
-                      left: screenWidth * 0.05,
-                      child: WatchButton(
-                        onTap: _navigateToTable,
-                        icon: Icons.table_chart_outlined,
-                        color: accentColor,
-                        size: watchSize,
-                      ),
-                    ),
-                    Positioned(
-                      top: screenHeight * 0.02,
-                      right: screenWidth * 0.05,
-                      child: NotificationIcon(
-                        notifications: _notifications,
-                        onTap: _showNotificationsPanel,
-                      ),
-                    ),
-                  ],
-
-                  // Contenido principal adaptativo
-                  Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: isRound
-                          ? screenWidth * 0.06
-                          : screenWidth * 0.05,
-                      vertical: isRound
-                          ? screenHeight * 0.03
-                          : screenHeight * 0.02,
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        // Espaciado superior para pantallas redondas
-                        if (isRound) SizedBox(height: screenHeight * 0.05),
-
-                        // Hora en la parte superior
-                        TimeDisplay(
-                          watchSize: watchSize,
-                          accentColor: accentColor,
-                        ),
-
-                        // Texto motivacional
-                        _buildMotivationalText(watchSize, accentColor, isRound),
-
-                        // Área principal del reloj
-                        Flexible(
-                          flex: 3,
-                          child: Center(
-                            child: AnimatedBuilder(
-                              animation: Listenable.merge([
-                                _pulseAnimation,
-                                _goalReachedAnimation,
-                              ]),
-                              builder: (context, child) {
-                                return Transform.scale(
-                                  scale:
-                                      _pulseAnimation.value *
-                                      _goalReachedAnimation.value,
-                                  child: SizedBox(
-                                    width: watchSize,
-                                    height: watchSize,
-                                    child: Stack(
-                                      children: [
-                                        // Anillo principal de progreso
-                                        ProgressRing(
-                                          progress:
-                                              fitnessData.calories /
-                                              fitnessData.dailyCaloriesGoal,
-                                          color: progressColor,
-                                          strokeWidth: isRound ? 13 : 14,
-                                          radius: watchSize * 0.4,
-                                        ),
-
-                                        // Contenido central
-                                        CenterContent(
-                                          fitnessData: fitnessData,
-                                          watchSize: watchSize,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                        ),
-
-                        // Información inferior
-                        Column(
-                          children: [
-                            _buildProgressIndicator(
-                              watchSize,
-                              progressColor,
-                              isRound,
-                            ),
-                            SizedBox(
-                              height: isRound
-                                  ? screenHeight * 0.008
-                                  : screenHeight * 0.015,
-                            ),
-                            _buildActivityDescription(
-                              watchSize,
-                              accentColor,
-                              isRound,
-                            ),
-                          ],
-                        ),
-
-                        // Espaciado inferior para pantallas redondas
-                        if (isRound) SizedBox(height: screenHeight * 0.015),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
             );
           },
         ),
       ),
+    );
+  }
+
+  Widget _buildWearableLayout(
+    Size screenSize,
+    LayoutConfig config,
+    Color accentColor,
+    Color progressColor,
+  ) {
+    final isRound = ScreenUtils.isRoundScreen(screenSize);
+    final watchSize = isRound
+        ? math.min(screenSize.width, screenSize.height) * 0.68
+        : math.min(screenSize.width, screenSize.height) * 0.7;
+
+    return Stack(
+      children: [
+        // Logo de marca sutil en la esquina
+        Positioned(
+          bottom: screenSize.height * 0.02,
+          right: screenSize.width * 0.02,
+          child: Opacity(
+            opacity: 0.3,
+            child: BrandedLogo(size: screenSize.width * 0.08, animated: false),
+          ),
+        ),
+
+        // Botones posicionados de manera adaptativa
+        if (isRound) ...[
+          Positioned(
+            top: screenSize.height * 0.18,
+            left: screenSize.width * 0.18,
+            child: WatchButton(
+              onTap: _navigateToTable,
+              icon: Icons.table_chart_outlined,
+              color: accentColor,
+              size: watchSize,
+            ),
+          ),
+          Positioned(
+            top: screenSize.height * 0.18,
+            right: screenSize.width * 0.18,
+            child: NotificationIcon(
+              notifications: _notifications,
+              onTap: _showNotificationsPanel,
+            ),
+          ),
+        ] else ...[
+          Positioned(
+            top: screenSize.height * 0.02,
+            left: screenSize.width * 0.05,
+            child: WatchButton(
+              onTap: _navigateToTable,
+              icon: Icons.table_chart_outlined,
+              color: accentColor,
+              size: watchSize,
+            ),
+          ),
+          Positioned(
+            top: screenSize.height * 0.02,
+            right: screenSize.width * 0.05,
+            child: NotificationIcon(
+              notifications: _notifications,
+              onTap: _showNotificationsPanel,
+            ),
+          ),
+        ],
+
+        // Contenido principal adaptativo
+        Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: isRound
+                ? screenSize.width * 0.06
+                : screenSize.width * 0.05,
+            vertical: isRound
+                ? screenSize.height * 0.03
+                : screenSize.height * 0.02,
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              if (isRound) SizedBox(height: screenSize.height * 0.05),
+
+              TimeDisplay(watchSize: watchSize, accentColor: accentColor),
+              _buildMotivationalText(watchSize, accentColor, isRound),
+
+              Flexible(
+                flex: 3,
+                child: Center(
+                  child: AnimatedBuilder(
+                    animation: Listenable.merge([
+                      _pulseAnimation,
+                      _goalReachedAnimation,
+                    ]),
+                    builder: (context, child) {
+                      return Transform.scale(
+                        scale:
+                            _pulseAnimation.value * _goalReachedAnimation.value,
+                        child: SizedBox(
+                          width: watchSize,
+                          height: watchSize,
+                          child: Stack(
+                            children: [
+                              ProgressRing(
+                                progress:
+                                    fitnessData.calories /
+                                    fitnessData.dailyCaloriesGoal,
+                                color: progressColor,
+                                strokeWidth: isRound ? 13 : 14,
+                                radius: watchSize * 0.4,
+                              ),
+                              CenterContent(
+                                fitnessData: fitnessData,
+                                watchSize: watchSize,
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+
+              Column(
+                children: [
+                  _buildProgressIndicator(watchSize, progressColor, isRound),
+                  SizedBox(
+                    height: isRound
+                        ? screenSize.height * 0.008
+                        : screenSize.height * 0.015,
+                  ),
+                  _buildActivityDescription(watchSize, accentColor, isRound),
+                ],
+              ),
+
+              if (isRound) SizedBox(height: screenSize.height * 0.015),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPhoneLayout(
+    Size screenSize,
+    LayoutConfig config,
+    Color accentColor,
+    Color progressColor,
+  ) {
+    return Padding(
+      padding: EdgeInsets.all(screenSize.width * 0.05),
+      child: Column(
+        children: [
+          // Header con navegación y notificaciones
+          _buildPhoneHeader(screenSize, accentColor),
+
+          SizedBox(height: screenSize.height * 0.03),
+
+          // Tiempo y estado
+          _buildPhoneTimeSection(screenSize, accentColor),
+
+          SizedBox(height: screenSize.height * 0.04),
+
+          // Área principal del progreso
+          Expanded(
+            child: _buildPhoneProgressSection(
+              screenSize,
+              progressColor,
+              accentColor,
+            ),
+          ),
+
+          SizedBox(height: screenSize.height * 0.03),
+
+          // Estadísticas inferiores
+          _buildPhoneStatsSection(screenSize, progressColor, accentColor),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPhoneHeader(Size screenSize, Color accentColor) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        GestureDetector(
+          onTap: _navigateToTable,
+          child: Container(
+            padding: EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: accentColor.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: accentColor.withOpacity(0.3)),
+            ),
+            child: Icon(
+              Icons.table_chart_outlined,
+              color: accentColor,
+              size: 24,
+            ),
+          ),
+        ),
+
+        AdaptiveText(
+          'CalorieWatch',
+          fontSize: screenSize.width * 0.06,
+          fontWeight: FontWeight.bold,
+          color: Colors.white,
+        ),
+
+        Row(
+          children: [
+            GestureDetector(
+              onTap: _navigateToSettings,
+              child: Container(
+                padding: EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.withOpacity(0.3)),
+                ),
+                child: Icon(
+                  Icons.settings,
+                  color: Colors.grey.shade300,
+                  size: 24,
+                ),
+              ),
+            ),
+            SizedBox(width: 8),
+            GestureDetector(
+              onTap: _showNotificationsPanel,
+              child: Container(
+                padding: EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: _notifications.isNotEmpty
+                      ? Colors.red.withOpacity(0.15)
+                      : Colors.grey.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: _notifications.isNotEmpty
+                        ? Colors.red.withOpacity(0.3)
+                        : Colors.grey.withOpacity(0.3),
+                  ),
+                ),
+                child: Stack(
+                  children: [
+                    Icon(
+                      Icons.notifications_outlined,
+                      color: _notifications.isNotEmpty
+                          ? Colors.red
+                          : Colors.grey,
+                      size: 24,
+                    ),
+                    if (_notifications.isNotEmpty)
+                      Positioned(
+                        right: -2,
+                        top: -2,
+                        child: Container(
+                          padding: EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Text(
+                            '${_notifications.length}',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPhoneTimeSection(Size screenSize, Color accentColor) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: accentColor.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: accentColor.withOpacity(0.3)),
+      ),
+      child: Column(
+        children: [
+          StreamBuilder(
+            stream: Stream.periodic(Duration(seconds: 1)),
+            builder: (context, snapshot) {
+              final now = DateTime.now();
+              return AdaptiveText(
+                '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}',
+                fontSize: screenSize.width * 0.12,
+                fontWeight: FontWeight.w300,
+                color: accentColor,
+                style: TextStyle(letterSpacing: 4.0),
+              );
+            },
+          ),
+          SizedBox(height: 8),
+          AdaptiveText(
+            ColorUtils.getMotivationalText(fitnessData.calories),
+            fontSize: screenSize.width * 0.045,
+            color: accentColor.withOpacity(0.8),
+            fontWeight: FontWeight.w600,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPhoneProgressSection(
+    Size screenSize,
+    Color progressColor,
+    Color accentColor,
+  ) {
+    final progressSize = screenSize.width * 0.7;
+
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        // Anillo de progreso grande
+        AnimatedBuilder(
+          animation: Listenable.merge([_pulseAnimation, _goalReachedAnimation]),
+          builder: (context, child) {
+            return Transform.scale(
+              scale: _pulseAnimation.value * _goalReachedAnimation.value,
+              child: SizedBox(
+                width: progressSize,
+                height: progressSize,
+                child: Stack(
+                  children: [
+                    ProgressRing(
+                      progress:
+                          fitnessData.calories / fitnessData.dailyCaloriesGoal,
+                      color: progressColor,
+                      strokeWidth: 16,
+                      radius: progressSize * 0.4,
+                    ),
+                    Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.local_fire_department,
+                            color: accentColor,
+                            size: progressSize * 0.12,
+                          ),
+                          SizedBox(height: 8),
+                          AdaptiveText(
+                            fitnessData.calories.toStringAsFixed(0),
+                            fontSize: progressSize * 0.15,
+                            fontWeight: FontWeight.bold,
+                            color: accentColor,
+                          ),
+                          AdaptiveText(
+                            'CALORÍAS',
+                            fontSize: progressSize * 0.04,
+                            color: accentColor.withOpacity(0.8),
+                            style: TextStyle(letterSpacing: 2.0),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+
+        SizedBox(height: screenSize.height * 0.04),
+
+        // Ritmo cardíaco
+        Container(
+          padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            color: _getHeartRateColor().withOpacity(0.15),
+            border: Border.all(color: _getHeartRateColor().withOpacity(0.3)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.favorite, color: _getHeartRateColor(), size: 24),
+              SizedBox(width: 8),
+              AdaptiveText(
+                '${fitnessData.heartRate} BPM',
+                fontSize: screenSize.width * 0.05,
+                fontWeight: FontWeight.w600,
+                color: _getHeartRateColor(),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPhoneStatsSection(
+    Size screenSize,
+    Color progressColor,
+    Color accentColor,
+  ) {
+    final progress = fitnessData.calories / fitnessData.dailyCaloriesGoal;
+
+    return Column(
+      children: [
+        // Barra de progreso
+        Container(
+          width: double.infinity,
+          height: 8,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(4),
+            color: progressColor.withOpacity(0.2),
+          ),
+          child: FractionallySizedBox(
+            alignment: Alignment.centerLeft,
+            widthFactor: progress.clamp(0.0, 1.0),
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(4),
+                color: progressColor,
+                boxShadow: [
+                  BoxShadow(
+                    color: progressColor.withOpacity(0.4),
+                    blurRadius: 8,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+
+        SizedBox(height: 12),
+
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            AdaptiveText(
+              '${(progress * 100).toStringAsFixed(0)}% OBJETIVO',
+              fontSize: screenSize.width * 0.04,
+              color: progressColor.withOpacity(0.9),
+              fontWeight: FontWeight.w600,
+            ),
+            AdaptiveText(
+              '${fitnessData.dailyCaloriesGoal.toInt()} cal meta',
+              fontSize: screenSize.width * 0.04,
+              color: accentColor.withOpacity(0.7),
+              fontWeight: FontWeight.w500,
+            ),
+          ],
+        ),
+
+        SizedBox(height: 16),
+
+        // Descripción de actividad
+        Container(
+          width: double.infinity,
+          padding: EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            color: accentColor.withOpacity(0.1),
+            border: Border.all(color: accentColor.withOpacity(0.3)),
+          ),
+          child: Center(
+            child: AdaptiveText(
+              ColorUtils.getActivityDescription(fitnessData.calories),
+              fontSize: screenSize.width * 0.045,
+              color: accentColor.withOpacity(0.9),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -477,5 +955,15 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
         fontWeight: FontWeight.w500,
       ),
     );
+  }
+
+  Color _getHeartRateColor() {
+    if (fitnessData.heartRate < 80) {
+      return Colors.green.shade400;
+    } else if (fitnessData.heartRate < 100) {
+      return Colors.orange.shade400;
+    } else {
+      return Colors.red.shade400;
+    }
   }
 }

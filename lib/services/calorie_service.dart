@@ -9,9 +9,9 @@ class CalorieService {
 
   final List<DailyCalories> _dailyRecords = [];
   final List<CalorieEntry> _todayEntries = [];
-  final StreamController<List<DailyCalories>> _recordsController =
+  final StreamController<List<DailyCalories>> _recordsController = 
       StreamController<List<DailyCalories>>.broadcast();
-  final StreamController<CalorieEntry> _newEntryController =
+  final StreamController<CalorieEntry> _newEntryController = 
       StreamController<CalorieEntry>.broadcast();
 
   Stream<List<DailyCalories>> get recordsStream => _recordsController.stream;
@@ -32,7 +32,7 @@ class CalorieService {
 
     // Actualizar o crear registro del día actual
     _updateTodayRecord(fitnessData.calories);
-
+    
     // Generar datos históricos si es la primera vez
     if (_dailyRecords.length <= 1) {
       _generateHistoricalData();
@@ -42,7 +42,7 @@ class CalorieService {
   void resetDailyProgress() {
     // Limpiar las entradas del día actual
     _todayEntries.clear();
-
+    
     // Actualizar el registro del día con 0 calorías
     _updateTodayRecord(0.0);
   }
@@ -53,7 +53,7 @@ class CalorieService {
 
     // Buscar si ya existe un registro para hoy
     final existingIndex = _dailyRecords.indexWhere(
-      (record) => _isSameDay(record.date, todayStart),
+      (record) => _isSameDay(record.date, todayStart)
     );
 
     final todayRecord = DailyCalories(
@@ -73,29 +73,28 @@ class CalorieService {
 
   void _generateHistoricalData() {
     final today = DateTime.now();
-
+    
     // Generar datos para los últimos 7 días
     for (int i = 1; i <= 7; i++) {
       final date = DateTime(today.year, today.month, today.day - i);
       final calories = 150.0 + (i * 25.0) + (i % 3 * 50.0); // Datos variados
-
+      
       final entries = _generateEntriesForDay(calories, i);
-
-      _dailyRecords.add(
-        DailyCalories(date: date, calories: calories, entries: entries),
-      );
+      
+      _dailyRecords.add(DailyCalories(
+        date: date,
+        calories: calories,
+        entries: entries,
+      ));
     }
 
     _recordsController.add(_dailyRecords);
   }
 
-  List<CalorieEntry> _generateEntriesForDay(
-    double totalCalories,
-    int dayOffset,
-  ) {
+  List<CalorieEntry> _generateEntriesForDay(double totalCalories, int dayOffset) {
     final date = DateTime.now().subtract(Duration(days: dayOffset));
     final entries = <CalorieEntry>[];
-
+    
     // Simular actividades del día
     final activities = [
       'Caminata matutina',
@@ -107,18 +106,15 @@ class CalorieService {
 
     double remaining = totalCalories;
     for (int i = 0; i < activities.length && remaining > 0; i++) {
-      final amount =
-          (remaining / (activities.length - i)) * (0.8 + (i % 3) * 0.4);
+      final amount = (remaining / (activities.length - i)) * (0.8 + (i % 3) * 0.4);
       final finalAmount = amount.clamp(10.0, remaining);
-
-      entries.add(
-        CalorieEntry(
-          timestamp: DateTime(date.year, date.month, date.day, 8 + i * 2, 30),
-          calories: finalAmount,
-          description: activities[i],
-        ),
-      );
-
+      
+      entries.add(CalorieEntry(
+        timestamp: DateTime(date.year, date.month, date.day, 8 + i * 2, 30),
+        calories: finalAmount,
+        description: activities[i],
+      ));
+      
       remaining -= finalAmount;
     }
 
@@ -134,8 +130,8 @@ class CalorieService {
 
   bool _isSameDay(DateTime date1, DateTime date2) {
     return date1.year == date2.year &&
-        date1.month == date2.month &&
-        date1.day == date2.day;
+           date1.month == date2.month &&
+           date1.day == date2.day;
   }
 
   void dispose() {

@@ -5,6 +5,7 @@ import '../models/daily_calories.dart';
 import '../services/calorie_service.dart';
 import '../utils/color_utils.dart';
 import '../utils/screen_utils.dart';
+import '../utils/device_utils.dart';
 import '../widgets/adaptive_container.dart';
 import '../widgets/adaptive_text.dart';
 import '../widgets/stats_card.dart';
@@ -63,34 +64,59 @@ class _CaloriesTableScreenState extends State<CaloriesTableScreen>
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
-    final isRound = ScreenUtils.isRoundScreen(screenSize);
+    final deviceType = DeviceUtils.getDeviceType(screenSize.width, screenSize.height);
+    final layoutConfig = DeviceUtils.getLayoutConfig(deviceType);
+    final isWearable = deviceType == DeviceType.wearable;
 
     return Scaffold(
       backgroundColor: Colors.black,
       body: SafeArea(
         child: FadeTransition(
           opacity: _fadeAnimation,
-          child: AdaptiveContainer(
-            padding: EdgeInsets.all(screenSize.width * 0.04),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildHeader(screenSize, isRound),
-                SizedBox(height: screenSize.height * 0.025),
-                _buildStatsCards(screenSize),
-                SizedBox(height: screenSize.height * 0.025),
-                _buildTableHeader(screenSize, isRound),
-                SizedBox(height: screenSize.height * 0.015),
-                Expanded(child: _buildTable(screenSize)),
-              ],
-            ),
-          ),
+          child: isWearable 
+              ? _buildWearableLayout(screenSize, layoutConfig)
+              : _buildPhoneLayout(screenSize, layoutConfig),
         ),
       ),
     );
   }
 
-  Widget _buildHeader(Size screenSize, bool isRound) {
+  Widget _buildWearableLayout(Size screenSize, LayoutConfig config) {
+    final isRound = ScreenUtils.isRoundScreen(screenSize);
+    
+    return AdaptiveContainer(
+      padding: EdgeInsets.all(screenSize.width * 0.04),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildWearableHeader(screenSize, isRound),
+          SizedBox(height: screenSize.height * 0.025),
+          _buildStatsCards(screenSize),
+          SizedBox(height: screenSize.height * 0.025),
+          _buildTableHeader(screenSize, isRound),
+          SizedBox(height: screenSize.height * 0.015),
+          Expanded(child: _buildTable(screenSize)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPhoneLayout(Size screenSize, LayoutConfig config) {
+    return Padding(
+      padding: EdgeInsets.all(screenSize.width * 0.05),
+      child: Column(
+        children: [
+          _buildPhoneHeader(screenSize),
+          SizedBox(height: screenSize.height * 0.03),
+          _buildPhoneStatsSection(screenSize),
+          SizedBox(height: screenSize.height * 0.03),
+          Expanded(child: _buildPhoneTableSection(screenSize)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWearableHeader(Size screenSize, bool isRound) {
     final watchSize = ScreenUtils.getAdaptiveSize(
       screenSize,
       math.min(screenSize.width, screenSize.height) * 0.7,
@@ -99,7 +125,6 @@ class _CaloriesTableScreenState extends State<CaloriesTableScreen>
     if (isRound) {
       return Column(
         children: [
-          // Botón centrado para pantallas redondas
           Center(
             child: WatchButton(
               onTap: () => Navigator.pop(context),
@@ -109,7 +134,6 @@ class _CaloriesTableScreenState extends State<CaloriesTableScreen>
             ),
           ),
           SizedBox(height: screenSize.height * 0.02),
-          // Títulos centrados
           Center(
             child: Column(
               children: [
@@ -133,7 +157,6 @@ class _CaloriesTableScreenState extends State<CaloriesTableScreen>
         ],
       );
     } else {
-      // Layout horizontal para pantallas cuadradas
       return Row(
         children: [
           WatchButton(
@@ -166,6 +189,214 @@ class _CaloriesTableScreenState extends State<CaloriesTableScreen>
         ],
       );
     }
+  }
+
+  Widget _buildPhoneHeader(Size screenSize) {
+    return Row(
+      children: [
+        Container(
+          padding: EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.blue.shade300.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.blue.shade300.withOpacity(0.3)),
+          ),
+          child: GestureDetector(
+            onTap: () => Navigator.pop(context),
+            child: Icon(
+              Icons.arrow_back,
+              color: Colors.blue.shade300,
+              size: 24,
+            ),
+          ),
+        ),
+        SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              AdaptiveText(
+                'Historial de Calorías',
+                fontSize: screenSize.width * 0.06,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+              AdaptiveText(
+                'Seguimiento diario de actividad',
+                fontSize: screenSize.width * 0.04,
+                color: Colors.grey.shade400,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPhoneStatsSection(Size screenSize) {
+    final totalCalories = _records.fold<double>(0, (sum, record) => sum + record.calories);
+    final avgCalories = _records.isNotEmpty ? totalCalories / _records.length : 0;
+    final goalsReached = _records.where((record) => record.goalReached).length;
+
+    return Container(
+      padding: EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade900.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade700),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AdaptiveText(
+            'Estadísticas Generales',
+            fontSize: screenSize.width * 0.05,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+          SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: _buildPhoneStatCard(
+                  'Total',
+                  '${totalCalories.toInt()}',
+                  'cal',
+                  Colors.blue,
+                  screenSize,
+                ),
+              ),
+              SizedBox(width: 12),
+              Expanded(
+                child: _buildPhoneStatCard(
+                  'Promedio',
+                  '${avgCalories.toInt()}',
+                  'cal/día',
+                  Colors.green,
+                  screenSize,
+                ),
+              ),
+              SizedBox(width: 12),
+              Expanded(
+                child: _buildPhoneStatCard(
+                  'Metas',
+                  '$goalsReached',
+                  'días',
+                  Colors.orange,
+                  screenSize,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPhoneStatCard(String title, String value, String unit, Color color, Size screenSize) {
+    return Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Column(
+        children: [
+          AdaptiveText(
+            title,
+            fontSize: screenSize.width * 0.035,
+            color: color.withOpacity(0.8),
+            fontWeight: FontWeight.w500,
+          ),
+          SizedBox(height: 8),
+          AdaptiveText(
+            value,
+            fontSize: screenSize.width * 0.045,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+          AdaptiveText(
+            unit,
+            fontSize: screenSize.width * 0.03,
+            color: color.withOpacity(0.7),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPhoneTableSection(Size screenSize) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.grey.shade900.withOpacity(0.3),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade700),
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade800,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(16),
+                topRight: Radius.circular(16),
+              ),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: AdaptiveText(
+                    'Fecha',
+                    fontSize: screenSize.width * 0.04,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey.shade300,
+                  ),
+                ),
+                Expanded(
+                  flex: 3,
+                  child: AdaptiveText(
+                    'Calorías',
+                    fontSize: screenSize.width * 0.04,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey.shade300,
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                Expanded(
+                  flex: 2,
+                  child: AdaptiveText(
+                    'Estado',
+                    fontSize: screenSize.width * 0.04,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey.shade300,
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: _records.isEmpty 
+                ? _buildEmptyState(screenSize)
+                : ListView.builder(
+                    padding: EdgeInsets.all(8),
+                    itemCount: _records.length,
+                    itemBuilder: (context, index) {
+                      final record = _records[index];
+                      final isToday = _isToday(record.date);
+                      return Padding(
+                        padding: EdgeInsets.only(bottom: 8),
+                        child: TableRowWidget(record: record, isToday: isToday),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildStatsCards(Size screenSize) {
