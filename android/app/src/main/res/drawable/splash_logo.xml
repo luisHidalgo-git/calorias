@@ -44,20 +44,20 @@
         android:strokeLineCap="round"
         android:strokeLineJoin="round" />
     
-    <!-- Puntos decorativos -->
+    <!-- Puntos decorativos usando path -->
     <path
-        android:pathData="M60,15 A2,2 0 1,1 60,19 A2,2 0 1,1 60,15 Z"
+        android:pathData="M60,13 A2,2 0 1,1 60,17 A2,2 0 1,1 60,13 Z"
         android:fillColor="#3B82F6" />
     
     <path
-        android:pathData="M60,101 A2,2 0 1,1 60,105 A2,2 0 1,1 60,101 Z"
+        android:pathData="M60,103 A2,2 0 1,1 60,107 A2,2 0 1,1 60,103 Z"
         android:fillColor="#3B82F6" />
     
     <path
-        android:pathData="M15,60 A2,2 0 1,1 15,64 A2,2 0 1,1 15,60 Z"
+        android:pathData="M13,60 A2,2 0 1,1 17,60 A2,2 0 1,1 13,60 Z"
         android:fillColor="#3B82F6" />
     
     <path
-        android:pathData="M105,60 A2,2 0 1,1 105,64 A2,2 0 1,1 105,60 Z"
+        android:pathData="M103,60 A2,2 0 1,1 107,60 A2,2 0 1,1 103,60 Z"
         android:fillColor="#3B82F6" />
 </vector>

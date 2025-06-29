@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    
+    <!-- Fondo con gradiente -->
+    <path
+        android:pathData="M0,0 L108,0 L108,108 L0,108 Z"
+        android:fillColor="#1A1A2E" />
+    
+    <!-- Círculos decorativos de fondo usando path -->
+    <path
+        android:pathData="M20,12 A8,8 0 1,1 20,28 A8,8 0 1,1 20,12 Z"
+        android:fillColor="#16213E"
+        android:fillAlpha="0.5" />
+    
+    <path
+        android:pathData="M88,24 A6,6 0 1,1 88,36 A6,6 0 1,1 88,24 Z"
+        android:fillColor="#0F3460"
+        android:fillAlpha="0.3" />
+    
+    <path
+        android:pathData="M15,73 A7,7 0 1,1 15,87 A7,7 0 1,1 15,73 Z"
+        android:fillColor="#16213E"
+        android:fillAlpha="0.4" />
+    
+    <path
+        android:pathData="M90,80 A5,5 0 1,1 90,90 A5,5 0 1,1 90,80 Z"
+        android:fillColor="#0F3460"
+        android:fillAlpha="0.6" />
+</vector>
