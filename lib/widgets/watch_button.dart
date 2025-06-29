@@ -23,7 +23,7 @@ class WatchButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
     final isRound = ScreenUtils.isRoundScreen(screenSize);
-
+    
     final adaptiveSize = ScreenUtils.getAdaptiveSize(screenSize, size);
     final adaptivePadding = adaptiveSize * 0.022;
     final adaptiveIconSize = adaptiveSize * 0.042;
@@ -46,7 +46,11 @@ class WatchButton extends StatelessWidget {
         ),
         child: Stack(
           children: [
-            Icon(icon, color: color, size: adaptiveIconSize),
+            Icon(
+              icon,
+              color: color,
+              size: adaptiveIconSize,
+            ),
             if (showBadge && badgeText != null)
               Positioned(
                 right: -2,
@@ -58,9 +62,7 @@ class WatchButton extends StatelessWidget {
                   ),
                   decoration: BoxDecoration(
                     color: Colors.red,
-                    borderRadius: BorderRadius.circular(
-                      screenSize.width * 0.025,
-                    ),
+                    borderRadius: BorderRadius.circular(screenSize.width * 0.025),
                     border: Border.all(color: Colors.white, width: 1),
                     boxShadow: [
                       BoxShadow(

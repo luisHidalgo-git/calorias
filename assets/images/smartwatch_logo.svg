@@ -1,0 +1,53 @@
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Fondo circular con gradiente -->
+  <defs>
+    <radialGradient id="bgGradient" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#1A1A2E;stop-opacity:1" />
+      <stop offset="70%" style="stop-color:#16213E;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0F3460;stop-opacity:1" />
+    </radialGradient>
+    <linearGradient id="ringGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#60A5FA;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#3B82F6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1D4ED8;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="fireGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFA500;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#FF6B35;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FF4500;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Fondo principal -->
+  <circle cx="100" cy="100" r="95" fill="url(#bgGradient)" stroke="#2563EB" stroke-width="3"/>
+  
+  <!-- Anillo de progreso -->
+  <circle cx="100" cy="100" r="70" fill="none" stroke="#374151" stroke-width="8" opacity="0.3"/>
+  <circle cx="100" cy="100" r="70" fill="none" stroke="url(#ringGradient)" stroke-width="8" 
+          stroke-dasharray="314" stroke-dashoffset="157" stroke-linecap="round" 
+          transform="rotate(-90 100 100)"/>
+  
+  <!-- Círculo central -->
+  <circle cx="100" cy="100" r="45" fill="#1F2937" stroke="#60A5FA" stroke-width="2"/>
+  
+  <!-- Ícono de fuego -->
+  <g transform="translate(100, 85)">
+    <path d="M-8,-15 C-8,-15 -12,-8 -8,-3 C-4,2 0,0 0,0 C0,0 4,2 8,-3 C12,-8 8,-15 8,-15 C8,-15 4,-10 0,-12 C-4,-10 -8,-15 -8,-15 Z" 
+          fill="url(#fireGradient)" stroke="#FF8C00" stroke-width="1"/>
+  </g>
+  
+  <!-- Texto de calorías -->
+  <text x="100" y="110" text-anchor="middle" fill="#60A5FA" font-family="Arial, sans-serif" 
+        font-size="16" font-weight="bold">CAL</text>
+  
+  <!-- Puntos decorativos -->
+  <circle cx="100" cy="30" r="3" fill="#60A5FA" opacity="0.8"/>
+  <circle cx="170" cy="100" r="3" fill="#60A5FA" opacity="0.8"/>
+  <circle cx="100" cy="170" r="3" fill="#60A5FA" opacity="0.8"/>
+  <circle cx="30" cy="100" r="3" fill="#60A5FA" opacity="0.8"/>
+  
+  <!-- Efectos de brillo -->
+  <circle cx="80" cy="60" r="2" fill="#93C5FD" opacity="0.6"/>
+  <circle cx="130" cy="70" r="1.5" fill="#93C5FD" opacity="0.4"/>
+  <circle cx="120" cy="140" r="2" fill="#93C5FD" opacity="0.5"/>
+</svg>

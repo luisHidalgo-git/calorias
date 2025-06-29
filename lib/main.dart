@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'screens/watch_face_screen.dart';
+import 'widgets/splash_screen.dart';
 
 void main() {
   runApp(SmartwatchCalorieApp());
@@ -20,7 +21,9 @@ class SmartwatchCalorieApp extends StatelessWidget {
           surface: Colors.grey[900]!,
         ),
       ),
-      home: WatchFaceScreen(),
+      home: SplashScreen(
+        child: WatchFaceScreen(),
+      ),
       debugShowCheckedModeBanner: false,
     );
   }
