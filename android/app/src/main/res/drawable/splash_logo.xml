@@ -8,14 +8,14 @@
     <!-- Círculo exterior -->
     <path
         android:pathData="M60,10 A50,50 0 1,1 60,110 A50,50 0 1,1 60,10 Z"
-        android:strokeColor="#60A5FA"
+        android:strokeColor="#3B82F6"
         android:strokeWidth="3"
         android:fillColor="#1F2937" />
     
     <!-- Anillo de progreso -->
     <path
         android:pathData="M60,20 A40,40 0 1,1 59.9,20"
-        android:strokeColor="#3B82F6"
+        android:strokeColor="#60A5FA"
         android:strokeWidth="6"
         android:fillColor="@android:color/transparent"
         android:strokeLineCap="round" />
@@ -24,28 +24,40 @@
     <path
         android:pathData="M60,35 A25,25 0 1,1 60,85 A25,25 0 1,1 60,35 Z"
         android:fillColor="#374151"
-        android:strokeColor="#60A5FA"
+        android:strokeColor="#3B82F6"
         android:strokeWidth="2" />
     
-    <!-- Ícono de fuego simplificado -->
+    <!-- Logo personalizado - Letra C estilizada -->
     <path
-        android:pathData="M60,45 C55,45 50,50 50,55 C50,65 55,70 60,70 C65,70 70,65 70,55 C70,50 65,45 60,45 Z"
-        android:fillColor="#FF6B35" />
+        android:pathData="M75,50 A15,15 0 1,0 75,70 M75,55 A10,10 0 1,0 75,65"
+        android:strokeColor="#FF6B35"
+        android:strokeWidth="4"
+        android:fillColor="@android:color/transparent"
+        android:strokeLineCap="round" />
     
-    <!-- Puntos decorativos usando path en lugar de circle -->
+    <!-- Logo personalizado - Letra W estilizada -->
+    <path
+        android:pathData="M45,50 L48,70 L52,55 L56,70 L59,50"
+        android:strokeColor="#FF6B35"
+        android:strokeWidth="3"
+        android:fillColor="@android:color/transparent"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    
+    <!-- Puntos decorativos -->
     <path
         android:pathData="M60,15 A2,2 0 1,1 60,19 A2,2 0 1,1 60,15 Z"
-        android:fillColor="#60A5FA" />
+        android:fillColor="#3B82F6" />
     
     <path
         android:pathData="M60,101 A2,2 0 1,1 60,105 A2,2 0 1,1 60,101 Z"
-        android:fillColor="#60A5FA" />
+        android:fillColor="#3B82F6" />
     
     <path
         android:pathData="M15,60 A2,2 0 1,1 15,64 A2,2 0 1,1 15,60 Z"
-        android:fillColor="#60A5FA" />
+        android:fillColor="#3B82F6" />
     
     <path
         android:pathData="M105,60 A2,2 0 1,1 105,64 A2,2 0 1,1 105,60 Z"
-        android:fillColor="#60A5FA" />
+        android:fillColor="#3B82F6" />
 </vector>

@@ -121,7 +121,7 @@ class _SplashScreenState extends State<SplashScreen>
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Logo principal
+                  // Logo principal personalizado
                   AnimatedBuilder(
                     animation: Listenable.merge([
                       _fadeAnimation,
@@ -142,16 +142,14 @@ class _SplashScreenState extends State<SplashScreen>
                                 shape: BoxShape.circle,
                                 gradient: RadialGradient(
                                   colors: [
-                                    ColorUtils.getProgressColor(200),
-                                    ColorUtils.getProgressColor(100),
-                                    ColorUtils.getProgressColor(50),
+                                    Color(0xFF3B82F6),
+                                    Color(0xFF1E40AF),
+                                    Color(0xFF1E3A8A),
                                   ],
                                 ),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: ColorUtils.getProgressColor(
-                                      150,
-                                    ).withOpacity(0.5),
+                                    color: Color(0xFF3B82F6).withOpacity(0.5),
                                     blurRadius: 30,
                                     spreadRadius: 5,
                                   ),
@@ -165,7 +163,7 @@ class _SplashScreenState extends State<SplashScreen>
                                       value: _rotateAnimation.value,
                                       strokeWidth: 4,
                                       valueColor: AlwaysStoppedAnimation<Color>(
-                                        ColorUtils.getAccentColor(200),
+                                        Color(0xFF60A5FA),
                                       ),
                                       backgroundColor: Colors.white.withOpacity(
                                         0.2,
@@ -173,14 +171,16 @@ class _SplashScreenState extends State<SplashScreen>
                                     ),
                                   ),
 
-                                  // Ícono central
+                                  // Logo personalizado en el centro
                                   Center(
-                                    child: Icon(
-                                      Icons.local_fire_department,
-                                      size:
-                                          screenSize.width *
-                                          (isRound ? 0.12 : 0.14),
-                                      color: Colors.white,
+                                    child: CustomPaint(
+                                      size: Size(
+                                        screenSize.width *
+                                            (isRound ? 0.15 : 0.17),
+                                        screenSize.width *
+                                            (isRound ? 0.15 : 0.17),
+                                      ),
+                                      painter: CustomLogoPainter(),
                                     ),
                                   ),
                                 ],
@@ -203,7 +203,7 @@ class _SplashScreenState extends State<SplashScreen>
                         child: Column(
                           children: [
                             Text(
-                              'Smartwatch',
+                              'CalorieWatch',
                               style: TextStyle(
                                 fontSize:
                                     screenSize.width * (isRound ? 0.08 : 0.09),
@@ -212,9 +212,7 @@ class _SplashScreenState extends State<SplashScreen>
                                 letterSpacing: 2.0,
                                 shadows: [
                                   Shadow(
-                                    color: ColorUtils.getAccentColor(
-                                      150,
-                                    ).withOpacity(0.5),
+                                    color: Color(0xFF3B82F6).withOpacity(0.5),
                                     blurRadius: 10,
                                   ),
                                 ],
@@ -222,11 +220,11 @@ class _SplashScreenState extends State<SplashScreen>
                             ),
                             SizedBox(height: screenSize.height * 0.01),
                             Text(
-                              'Calories Tracker',
+                              'Fitness Tracker',
                               style: TextStyle(
                                 fontSize:
                                     screenSize.width * (isRound ? 0.04 : 0.045),
-                                color: ColorUtils.getAccentColor(150),
+                                color: Color(0xFF60A5FA),
                                 letterSpacing: 1.5,
                                 fontWeight: FontWeight.w300,
                               ),
@@ -253,7 +251,7 @@ class _SplashScreenState extends State<SplashScreen>
                               child: LinearProgressIndicator(
                                 backgroundColor: Colors.white.withOpacity(0.2),
                                 valueColor: AlwaysStoppedAnimation<Color>(
-                                  ColorUtils.getAccentColor(150),
+                                  Color(0xFF60A5FA),
                                 ),
                               ),
                             ),
@@ -281,11 +279,110 @@ class _SplashScreenState extends State<SplashScreen>
   }
 }
 
+class CustomLogoPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..style = PaintingStyle.fill;
+
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2;
+
+    // Círculo exterior
+    paint.color = Color(0xFF1F2937);
+    canvas.drawCircle(center, radius * 0.9, paint);
+
+    // Borde del círculo
+    paint
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3
+      ..color = Color(0xFF60A5FA);
+    canvas.drawCircle(center, radius * 0.9, paint);
+
+    // Anillo de progreso
+    paint
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 6
+      ..color = Color(0xFF3B82F6)
+      ..strokeCap = StrokeCap.round;
+
+    final rect = Rect.fromCircle(center: center, radius: radius * 0.7);
+    canvas.drawArc(rect, -1.57, 4.71, false, paint);
+
+    // Círculo central
+    paint
+      ..style = PaintingStyle.fill
+      ..color = Color(0xFF374151);
+    canvas.drawCircle(center, radius * 0.5, paint);
+
+    paint
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2
+      ..color = Color(0xFF60A5FA);
+    canvas.drawCircle(center, radius * 0.5, paint);
+
+    // Ícono de fuego personalizado
+    paint
+      ..style = PaintingStyle.fill
+      ..color = Color(0xFFFF6B35);
+
+    final flamePath = Path();
+    final flameCenter = center;
+    final flameRadius = radius * 0.25;
+
+    // Forma de llama simplificada
+    flamePath.moveTo(flameCenter.dx, flameCenter.dy + flameRadius);
+    flamePath.quadraticBezierTo(
+      flameCenter.dx - flameRadius * 0.8,
+      flameCenter.dy,
+      flameCenter.dx,
+      flameCenter.dy - flameRadius * 0.8,
+    );
+    flamePath.quadraticBezierTo(
+      flameCenter.dx + flameRadius * 0.8,
+      flameCenter.dy,
+      flameCenter.dx,
+      flameCenter.dy + flameRadius,
+    );
+
+    canvas.drawPath(flamePath, paint);
+
+    // Puntos decorativos
+    paint
+      ..style = PaintingStyle.fill
+      ..color = Color(0xFF60A5FA);
+
+    final dotRadius = 2.0;
+    canvas.drawCircle(
+      Offset(center.dx, center.dy - radius * 0.8),
+      dotRadius,
+      paint,
+    );
+    canvas.drawCircle(
+      Offset(center.dx, center.dy + radius * 0.8),
+      dotRadius,
+      paint,
+    );
+    canvas.drawCircle(
+      Offset(center.dx - radius * 0.8, center.dy),
+      dotRadius,
+      paint,
+    );
+    canvas.drawCircle(
+      Offset(center.dx + radius * 0.8, center.dy),
+      dotRadius,
+      paint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
 class SplashBackgroundPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.blue.withOpacity(0.1)
+      ..color = Color(0xFF3B82F6).withOpacity(0.1)
       ..style = PaintingStyle.fill;
 
     // Círculos decorativos
@@ -299,7 +396,7 @@ class SplashBackgroundPainter extends CustomPainter {
 
     // Líneas decorativas
     final linePaint = Paint()
-      ..color = Colors.blue.withOpacity(0.15)
+      ..color = Color(0xFF3B82F6).withOpacity(0.15)
       ..strokeWidth = 2
       ..style = PaintingStyle.stroke;
 
