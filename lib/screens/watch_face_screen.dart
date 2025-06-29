@@ -324,7 +324,7 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
     );
   }
 
-  // Nuevos métodos para ajustar valores
+  // Métodos para ajustar valores con mantener presionado
   void _showCaloriesAdjustment() {
     showDialog(
       context: context,
@@ -534,9 +534,12 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
                                 strokeWidth: isRound ? 13 : 14,
                                 radius: watchSize * 0.4,
                               ),
-                              CenterContent(
-                                fitnessData: fitnessData,
-                                watchSize: watchSize,
+                              // CenterContent con funcionalidad de mantener presionado
+                              _buildInteractiveCenterContent(
+                                fitnessData,
+                                watchSize,
+                                isRound,
+                                accentColor,
                               ),
                             ],
                           ),
@@ -600,6 +603,137 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
 
           // Estadísticas inferiores
           _buildPhoneStatsSection(screenSize, progressColor, accentColor),
+        ],
+      ),
+    );
+  }
+
+  // Nuevo widget para el contenido central interactivo
+  Widget _buildInteractiveCenterContent(
+    FitnessData fitnessData,
+    double watchSize,
+    bool isRound,
+    Color accentColor,
+  ) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // Contador principal de calorías - CLICKEABLE CON MANTENER PRESIONADO
+          GestureDetector(
+            onLongPress: _showCaloriesAdjustment,
+            child: Container(
+              width: watchSize * (isRound ? 0.34 : 0.35),
+              height: watchSize * (isRound ? 0.34 : 0.35),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: accentColor.withOpacity(0.12),
+                border: Border.all(
+                  color: accentColor.withOpacity(0.4),
+                  width: 2,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: accentColor.withOpacity(0.3),
+                    blurRadius: 12,
+                    spreadRadius: 1,
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.local_fire_department,
+                    color: accentColor,
+                    size: watchSize * (isRound ? 0.048 : 0.05),
+                  ),
+                  SizedBox(height: watchSize * 0.005),
+                  AdaptiveText(
+                    fitnessData.calories.toStringAsFixed(0),
+                    fontSize: watchSize * (isRound ? 0.085 : 0.09),
+                    fontWeight: FontWeight.bold,
+                    color: accentColor,
+                    style: TextStyle(
+                      shadows: [
+                        Shadow(
+                          color: accentColor.withOpacity(0.5),
+                          blurRadius: 8,
+                        ),
+                      ],
+                    ),
+                  ),
+                  AdaptiveText(
+                    'CALORÍAS',
+                    fontSize: watchSize * (isRound ? 0.017 : 0.018),
+                    color: accentColor.withOpacity(0.8),
+                    style: TextStyle(
+                      letterSpacing: 1.0,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  // Indicador visual de que es interactivo
+                  Container(
+                    margin: EdgeInsets.only(top: watchSize * 0.01),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: watchSize * 0.02,
+                      vertical: watchSize * 0.005,
+                    ),
+                    decoration: BoxDecoration(
+                      color: accentColor.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(watchSize * 0.01),
+                      border: Border.all(color: accentColor.withOpacity(0.3)),
+                    ),
+                    child: AdaptiveText(
+                      'Mantén presionado',
+                      fontSize: watchSize * (isRound ? 0.012 : 0.013),
+                      color: accentColor.withOpacity(0.7),
+                      style: TextStyle(fontStyle: FontStyle.italic),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          SizedBox(height: watchSize * (isRound ? 0.018 : 0.02)),
+
+          // Ritmo cardíaco - CLICKEABLE CON MANTENER PRESIONADO
+          GestureDetector(
+            onLongPress: _showHeartRateAdjustment,
+            child: Container(
+              padding: EdgeInsets.symmetric(
+                horizontal: watchSize * (isRound ? 0.028 : 0.03),
+                vertical: watchSize * (isRound ? 0.014 : 0.015),
+              ),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(watchSize * 0.015),
+                color: _getHeartRateColor().withOpacity(0.12),
+                border: Border.all(
+                  color: _getHeartRateColor().withOpacity(0.3),
+                  width: 1,
+                ),
+              ),
+              child: Column(
+                children: [
+                  AdaptiveText(
+                    '♥ ${fitnessData.heartRate}',
+                    fontSize: watchSize * (isRound ? 0.034 : 0.035),
+                    fontWeight: FontWeight.w600,
+                    color: _getHeartRateColor(),
+                  ),
+                  SizedBox(height: watchSize * 0.005),
+                  // Indicador visual de que es interactivo
+                  AdaptiveText(
+                    'Mantén presionado',
+                    fontSize: watchSize * (isRound ? 0.012 : 0.013),
+                    color: _getHeartRateColor().withOpacity(0.6),
+                    style: TextStyle(fontStyle: FontStyle.italic),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -752,7 +886,7 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        // Anillo de progreso grande - CLICKEABLE
+        // Anillo de progreso grande - CLICKEABLE CON MANTENER PRESIONADO
         AnimatedBuilder(
           animation: Listenable.merge([_pulseAnimation, _goalReachedAnimation]),
           builder: (context, child) {
@@ -761,7 +895,7 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
               child: Material(
                 color: Colors.transparent,
                 child: InkWell(
-                  onTap: _showCaloriesAdjustment,
+                  onLongPress: _showCaloriesAdjustment,
                   borderRadius: BorderRadius.circular(progressSize / 2),
                   child: Container(
                     width: progressSize,
@@ -816,7 +950,7 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
                                   ),
                                 ),
                                 child: AdaptiveText(
-                                  'Toca para ajustar',
+                                  'Mantén presionado para ajustar',
                                   fontSize: progressSize * 0.03,
                                   color: accentColor.withOpacity(0.8),
                                   style: TextStyle(fontStyle: FontStyle.italic),
@@ -836,11 +970,11 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
 
         SizedBox(height: screenSize.height * 0.04),
 
-        // Ritmo cardíaco - CLICKEABLE
+        // Ritmo cardíaco - CLICKEABLE CON MANTENER PRESIONADO
         Material(
           color: Colors.transparent,
           child: InkWell(
-            onTap: _showHeartRateAdjustment,
+            onLongPress: _showHeartRateAdjustment,
             borderRadius: BorderRadius.circular(16),
             child: Container(
               padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
@@ -881,7 +1015,7 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
                       ),
                     ),
                     child: AdaptiveText(
-                      'Toca para ajustar',
+                      'Mantén presionado para ajustar',
                       fontSize: screenSize.width * 0.03,
                       color: _getHeartRateColor().withOpacity(0.8),
                       style: TextStyle(fontStyle: FontStyle.italic),
