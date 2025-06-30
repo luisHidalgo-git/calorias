@@ -51,7 +51,7 @@ class WearableLayout extends StatelessWidget {
 
     return Stack(
       children: [
-        // Logo de marca sutil en la esquina
+        // Logo de marca sutil en la esquina inferior derecha
         Positioned(
           bottom: screenSize.height * 0.02,
           right: screenSize.width * 0.02,
@@ -61,11 +61,12 @@ class WearableLayout extends StatelessWidget {
           ),
         ),
 
-        // Botones posicionados de manera adaptativa
+        // Botones posicionados según la imagen - CORREGIDOS PARA SER VISIBLES
         if (isRound) ...[
+          // Botón de tabla en la parte superior izquierda
           Positioned(
-            top: screenSize.height * 0.18,
-            left: screenSize.width * 0.18,
+            top: screenSize.height * 0.15,
+            left: screenSize.width * 0.15,
             child: WatchButton(
               onTap: onNavigateToTable,
               icon: Icons.table_chart_outlined,
@@ -73,17 +74,20 @@ class WearableLayout extends StatelessWidget {
               size: watchSize,
             ),
           ),
+          
+          // Notificaciones en la parte superior derecha
           Positioned(
-            top: screenSize.height * 0.18,
-            right: screenSize.width * 0.18,
+            top: screenSize.height * 0.15,
+            right: screenSize.width * 0.15,
             child: NotificationIcon(
               notifications: notifications,
               onTap: onShowNotifications,
             ),
           ),
         ] else ...[
+          // Para pantallas cuadradas - botones visibles en la parte superior
           Positioned(
-            top: screenSize.height * 0.02,
+            top: screenSize.height * 0.05,
             left: screenSize.width * 0.05,
             child: WatchButton(
               onTap: onNavigateToTable,
@@ -92,8 +96,9 @@ class WearableLayout extends StatelessWidget {
               size: watchSize,
             ),
           ),
+          
           Positioned(
-            top: screenSize.height * 0.02,
+            top: screenSize.height * 0.05,
             right: screenSize.width * 0.05,
             child: NotificationIcon(
               notifications: notifications,
@@ -115,11 +120,16 @@ class WearableLayout extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              if (isRound) SizedBox(height: screenSize.height * 0.05),
+              // Espaciado superior para evitar superposición con botones
+              SizedBox(height: screenSize.height * (isRound ? 0.08 : 0.06)),
 
-              TimeDisplay(watchSize: watchSize, accentColor: accentColor),
+              // Hora en la parte superior central
+              _buildTimeSection(watchSize, accentColor, isRound),
+              
+              // Texto motivacional justo debajo de la hora
               _buildMotivationalText(watchSize, accentColor, isRound),
 
+              // Contenido principal con anillo de progreso
               Flexible(
                 flex: 3,
                 child: Center(
@@ -160,6 +170,7 @@ class WearableLayout extends StatelessWidget {
                 ),
               ),
 
+              // Indicadores de progreso y descripción en la parte inferior
               Column(
                 children: [
                   _buildProgressIndicator(watchSize, progressColor, isRound),
@@ -172,11 +183,46 @@ class WearableLayout extends StatelessWidget {
                 ],
               ),
 
-              if (isRound) SizedBox(height: screenSize.height * 0.015),
+              // Espaciado inferior
+              SizedBox(height: screenSize.height * (isRound ? 0.02 : 0.015)),
             ],
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildTimeSection(double watchSize, Color accentColor, bool isRound) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: watchSize * (isRound ? 0.038 : 0.04),
+        vertical: watchSize * (isRound ? 0.014 : 0.015),
+      ),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(watchSize * 0.025),
+        color: accentColor.withOpacity(0.12),
+        border: Border.all(color: accentColor.withOpacity(0.3), width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: accentColor.withOpacity(0.2),
+            blurRadius: 8,
+            spreadRadius: 1,
+          ),
+        ],
+      ),
+      child: StreamBuilder(
+        stream: Stream.periodic(Duration(seconds: 1)),
+        builder: (context, snapshot) {
+          final now = DateTime.now();
+          return AdaptiveText(
+            '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}',
+            fontSize: watchSize * (isRound ? 0.047 : 0.05),
+            fontWeight: FontWeight.w300,
+            color: accentColor,
+            style: TextStyle(letterSpacing: 2.0),
+          );
+        },
+      ),
     );
   }
 

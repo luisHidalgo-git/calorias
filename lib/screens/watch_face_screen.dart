@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:math' as math;
 import '../models/fitness_data.dart';
+import '../models/daily_calories.dart';
 import '../services/calorie_service.dart';
 import '../services/settings_service.dart';
 import '../utils/color_utils.dart';
@@ -10,7 +11,6 @@ import '../widgets/watch_face/watch_face_layout.dart';
 import '../widgets/watch_face/watch_face_animations.dart';
 import '../widgets/watch_face/watch_face_navigation.dart';
 import '../widgets/watch_face/watch_face_interactions.dart';
-import '../models/daily_calories.dart';
 
 class WatchFaceScreen extends StatefulWidget {
   const WatchFaceScreen({super.key});
