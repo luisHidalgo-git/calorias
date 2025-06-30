@@ -28,6 +28,7 @@ class _MqttConnectionWidgetState extends State<MqttConnectionWidget>
 
   ConnectionStatus _connectionStatus = ConnectionStatus.disconnected;
   List<DeviceConnectionModel> _discoveredDevices = [];
+  List<DeviceConnectionModel> _connectedDevices = [];
 
   @override
   void initState() {
@@ -84,6 +85,8 @@ class _MqttConnectionWidgetState extends State<MqttConnectionWidget>
       if (mounted) {
         setState(() {
           _discoveredDevices = devices;
+          _connectedDevices = _mqttService
+              .connectedDevices; // Actualizar dispositivos conectados
         });
       }
     });
@@ -199,10 +202,43 @@ class _MqttConnectionWidgetState extends State<MqttConnectionWidget>
                         ]
                       : null,
                 ),
-                child: Icon(
-                  _getStatusIcon(),
-                  color: _getStatusColor(),
-                  size: isWearable ? 16 : 20,
+                child: Stack(
+                  children: [
+                    Icon(
+                      _getStatusIcon(),
+                      color: _getStatusColor(),
+                      size: isWearable ? 16 : 20,
+                    ),
+                    // Badge para mostrar número de dispositivos conectados
+                    if (_connectedDevices.isNotEmpty &&
+                        _connectionStatus == ConnectionStatus.connected)
+                      Positioned(
+                        right: -2,
+                        top: -2,
+                        child: Container(
+                          padding: EdgeInsets.all(2),
+                          decoration: BoxDecoration(
+                            color: Colors.blue,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 1),
+                          ),
+                          constraints: BoxConstraints(
+                            minWidth: 14,
+                            minHeight: 14,
+                          ),
+                          child: Center(
+                            child: Text(
+                              '${_connectedDevices.length}',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 8,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
             ),
@@ -227,6 +263,10 @@ class _MqttConnectionWidgetState extends State<MqttConnectionWidget>
           if (!isWearable) ...[
             SizedBox(height: 16),
             _buildDeviceInfo(screenSize),
+            if (_connectedDevices.isNotEmpty) ...[
+              SizedBox(height: 16),
+              _buildConnectedDevicesPreview(screenSize),
+            ],
             if (_discoveredDevices.isNotEmpty) ...[
               SizedBox(height: 16),
               _buildDiscoveredDevices(screenSize),
@@ -286,11 +326,34 @@ class _MqttConnectionWidgetState extends State<MqttConnectionWidget>
                 fontWeight: FontWeight.w600,
                 color: Colors.white,
               ),
-              AdaptiveText(
-                _connectionStatus.name.toUpperCase(),
-                fontSize: screenSize.width * (isWearable ? 0.025 : 0.03),
-                color: _getStatusColor(),
-                fontWeight: FontWeight.w500,
+              Row(
+                children: [
+                  AdaptiveText(
+                    _connectionStatus.name.toUpperCase(),
+                    fontSize: screenSize.width * (isWearable ? 0.025 : 0.03),
+                    color: _getStatusColor(),
+                    fontWeight: FontWeight.w500,
+                  ),
+                  if (_connectedDevices.isNotEmpty &&
+                      _connectionStatus == ConnectionStatus.connected) ...[
+                    SizedBox(width: 8),
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                      ),
+                      child: AdaptiveText(
+                        '${_connectedDevices.length} conectados',
+                        fontSize:
+                            screenSize.width * (isWearable ? 0.02 : 0.025),
+                        color: Colors.blue,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ],
           ),
@@ -364,6 +427,101 @@ class _MqttConnectionWidgetState extends State<MqttConnectionWidget>
     );
   }
 
+  Widget _buildConnectedDevicesPreview(Size screenSize) {
+    return Container(
+      padding: EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.green.shade900.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.green.withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.devices, color: Colors.green, size: 16),
+              SizedBox(width: 8),
+              AdaptiveText(
+                'Dispositivos Conectados (${_connectedDevices.length})',
+                fontSize: screenSize.width * 0.035,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ],
+          ),
+          SizedBox(height: 8),
+          if (_connectedDevices.length <= 2) ...[
+            ..._connectedDevices.map(
+              (device) =>
+                  _buildDeviceItem(device, screenSize, isConnected: true),
+            ),
+          ] else ...[
+            ..._connectedDevices
+                .take(2)
+                .map(
+                  (device) =>
+                      _buildDeviceItem(device, screenSize, isConnected: true),
+                ),
+            Container(
+              margin: EdgeInsets.symmetric(vertical: 4),
+              padding: EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.green.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: Colors.green.withOpacity(0.3)),
+              ),
+              child: Center(
+                child: AdaptiveText(
+                  'y ${_connectedDevices.length - 2} más...',
+                  fontSize: screenSize.width * 0.03,
+                  color: Colors.green,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDiscoveredDevices(Size screenSize) {
+    final disconnectedDevices = _discoveredDevices
+        .where(
+          (device) => !_connectedDevices.any(
+            (connected) => connected.deviceId == device.deviceId,
+          ),
+        )
+        .toList();
+
+    if (disconnectedDevices.isEmpty) return SizedBox.shrink();
+
+    return Container(
+      padding: EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade800.withOpacity(0.3),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AdaptiveText(
+            'Otros Dispositivos Descubiertos (${disconnectedDevices.length})',
+            fontSize: screenSize.width * 0.035,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+          SizedBox(height: 8),
+          ...disconnectedDevices.map(
+            (device) =>
+                _buildDeviceItem(device, screenSize, isConnected: false),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildInfoRow(String label, String value, Size screenSize) {
     return Padding(
       padding: EdgeInsets.symmetric(vertical: 2),
@@ -389,45 +547,20 @@ class _MqttConnectionWidgetState extends State<MqttConnectionWidget>
     );
   }
 
-  Widget _buildDiscoveredDevices(Size screenSize) {
-    return Container(
-      padding: EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade800.withOpacity(0.3),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          AdaptiveText(
-            'Dispositivos Descubiertos (${_discoveredDevices.length})',
-            fontSize: screenSize.width * 0.035,
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-          ),
-          SizedBox(height: 8),
-          ..._discoveredDevices.map(
-            (device) => _buildDeviceItem(device, screenSize),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget _buildDeviceItem(
+    DeviceConnectionModel device,
+    Size screenSize, {
+    required bool isConnected,
+  }) {
+    final statusColor = isConnected ? Colors.green : Colors.grey;
 
-  Widget _buildDeviceItem(DeviceConnectionModel device, Size screenSize) {
     return Container(
       margin: EdgeInsets.symmetric(vertical: 4),
       padding: EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: device.isConnected
-            ? Colors.green.withOpacity(0.1)
-            : Colors.grey.withOpacity(0.1),
+        color: statusColor.withOpacity(0.1),
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(
-          color: device.isConnected
-              ? Colors.green.withOpacity(0.3)
-              : Colors.grey.withOpacity(0.3),
-        ),
+        border: Border.all(color: statusColor.withOpacity(0.3)),
       ),
       child: Row(
         children: [
@@ -435,7 +568,7 @@ class _MqttConnectionWidgetState extends State<MqttConnectionWidget>
             device.deviceType == DeviceConnectionType.smartwatch
                 ? Icons.watch
                 : Icons.phone_android,
-            color: device.isConnected ? Colors.green : Colors.grey,
+            color: statusColor,
             size: 16,
           ),
           SizedBox(width: 8),
@@ -462,15 +595,13 @@ class _MqttConnectionWidgetState extends State<MqttConnectionWidget>
           Container(
             padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(
-              color: device.isConnected
-                  ? Colors.green.withOpacity(0.2)
-                  : Colors.grey.withOpacity(0.2),
+              color: statusColor.withOpacity(0.2),
               borderRadius: BorderRadius.circular(4),
             ),
             child: AdaptiveText(
-              device.statusText,
+              isConnected ? 'Conectado' : device.statusText,
               fontSize: screenSize.width * 0.025,
-              color: device.isConnected ? Colors.green : Colors.grey,
+              color: statusColor,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -590,11 +721,31 @@ class _MqttConnectionWidgetState extends State<MqttConnectionWidget>
               ),
             ], screenSize),
 
+            // Nueva sección: Dispositivos conectados
+            if (_connectedDevices.isNotEmpty) ...[
+              SizedBox(height: 16),
+              _buildDetailSection(
+                'Dispositivos Conectados (${_connectedDevices.length})',
+                _connectedDevices
+                    .map(
+                      (device) => _buildConnectedDeviceRow(device, screenSize),
+                    )
+                    .toList(),
+                screenSize,
+                sectionColor: Colors.green,
+              ),
+            ],
+
             if (_discoveredDevices.isNotEmpty) ...[
               SizedBox(height: 16),
               _buildDetailSection(
                 'Dispositivos Descubiertos',
                 _discoveredDevices
+                    .where(
+                      (device) => !_connectedDevices.any(
+                        (connected) => connected.deviceId == device.deviceId,
+                      ),
+                    )
                     .map(
                       (device) => _buildDetailRow(
                         '${device.deviceName}:',
@@ -673,22 +824,36 @@ class _MqttConnectionWidgetState extends State<MqttConnectionWidget>
   Widget _buildDetailSection(
     String title,
     List<Widget> children,
-    Size screenSize,
-  ) {
+    Size screenSize, {
+    Color? sectionColor,
+  }) {
+    final color = sectionColor ?? Colors.grey.shade800;
+
     return Container(
       padding: EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.grey.shade800.withOpacity(0.3),
+        color: color.withOpacity(0.3),
         borderRadius: BorderRadius.circular(8),
+        border: sectionColor != null
+            ? Border.all(color: sectionColor.withOpacity(0.3))
+            : null,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          AdaptiveText(
-            title,
-            fontSize: screenSize.width * 0.04,
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
+          Row(
+            children: [
+              if (sectionColor == Colors.green) ...[
+                Icon(Icons.devices, color: Colors.green, size: 16),
+                SizedBox(width: 8),
+              ],
+              AdaptiveText(
+                title,
+                fontSize: screenSize.width * 0.04,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ],
           ),
           SizedBox(height: 8),
           ...children,
@@ -717,6 +882,64 @@ class _MqttConnectionWidgetState extends State<MqttConnectionWidget>
               value,
               fontSize: screenSize.width * 0.035,
               color: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildConnectedDeviceRow(
+    DeviceConnectionModel device,
+    Size screenSize,
+  ) {
+    return Container(
+      margin: EdgeInsets.symmetric(vertical: 3),
+      padding: EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: Colors.green.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: Colors.green.withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            device.deviceType == DeviceConnectionType.smartwatch
+                ? Icons.watch
+                : Icons.phone_android,
+            color: Colors.green,
+            size: 16,
+          ),
+          SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                AdaptiveText(
+                  device.deviceName,
+                  fontSize: screenSize.width * 0.035,
+                  color: Colors.white,
+                  fontWeight: FontWeight.w500,
+                ),
+                AdaptiveText(
+                  '${device.deviceTypeText} • ${device.lastSeenText}',
+                  fontSize: screenSize.width * 0.03,
+                  color: Colors.grey.shade400,
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: Colors.green.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: AdaptiveText(
+              'Conectado',
+              fontSize: screenSize.width * 0.03,
+              color: Colors.green,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ],

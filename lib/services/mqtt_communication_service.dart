@@ -21,6 +21,7 @@ class MqttCommunicationService {
   static const String _discoveryTopic = '$_baseTopic/discovery';
   static const String _dataTopic = '$_baseTopic/data';
   static const String _statusTopic = '$_baseTopic/status';
+  static const String _heartbeatTopic = '$_baseTopic/heartbeat';
 
   MqttServerClient? _client;
   String? _deviceId;
@@ -28,6 +29,7 @@ class MqttCommunicationService {
   DeviceConnectionType? _deviceType;
   Timer? _heartbeatTimer;
   Timer? _discoveryTimer;
+  Timer? _cleanupTimer;
 
   // Streams para comunicar el estado
   final StreamController<ConnectionStatus> _connectionStatusController =
@@ -40,6 +42,8 @@ class MqttCommunicationService {
   // Estado interno
   ConnectionStatus _connectionStatus = ConnectionStatus.disconnected;
   final Map<String, DeviceConnectionModel> _discoveredDevices = {};
+  final Map<String, DateTime> _connectedDevices =
+      {}; // Nuevo: dispositivos conectados con timestamp
   DeviceConnectionModel? _connectedDevice;
 
   // Getters públicos
@@ -59,9 +63,33 @@ class MqttCommunicationService {
   String? get deviceName => _deviceName;
   DeviceConnectionType? get deviceType => _deviceType;
 
+  // Nuevo: getter para dispositivos conectados
+  List<DeviceConnectionModel> get connectedDevices {
+    final now = DateTime.now();
+    final activeDevices = <DeviceConnectionModel>[];
+
+    _connectedDevices.removeWhere((deviceId, lastSeen) {
+      // Remover dispositivos que no han enviado heartbeat en los últimos 2 minutos
+      return now.difference(lastSeen).inMinutes > 2;
+    });
+
+    for (final deviceId in _connectedDevices.keys) {
+      if (_discoveredDevices.containsKey(deviceId)) {
+        final device = _discoveredDevices[deviceId]!.copyWith(
+          status: ConnectionStatus.connected,
+          lastSeen: _connectedDevices[deviceId],
+        );
+        activeDevices.add(device);
+      }
+    }
+
+    return activeDevices;
+  }
+
   Future<void> initialize() async {
     try {
       await _initializeDeviceInfo();
+      _startCleanupTimer();
       print('MQTT Service initialized - Device: $_deviceName ($_deviceType)');
     } catch (e) {
       print('Error initializing MQTT service: $e');
@@ -180,6 +208,7 @@ class MqttCommunicationService {
 
       _updateConnectionStatus(ConnectionStatus.disconnected);
       _discoveredDevices.clear();
+      _connectedDevices.clear();
       _connectedDevice = null;
       _devicesController.add([]);
     } catch (e) {
@@ -195,6 +224,10 @@ class MqttCommunicationService {
     _client!.subscribe(_discoveryTopic, MqttQos.atLeastOnce);
     _client!.subscribe('$_dataTopic/+', MqttQos.atLeastOnce);
     _client!.subscribe('$_statusTopic/+/+', MqttQos.atLeastOnce);
+    _client!.subscribe(
+      '$_heartbeatTopic/+',
+      MqttQos.atLeastOnce,
+    ); // Nuevo: suscribirse a heartbeats
 
     // Configurar listener para mensajes
     _client!.updates!.listen((List<MqttReceivedMessage<MqttMessage>> messages) {
@@ -228,6 +261,8 @@ class MqttCommunicationService {
         _handleDataMessage(topic, payload);
       } else if (topic.startsWith(_statusTopic)) {
         _handleStatusMessage(topic, payload);
+      } else if (topic.startsWith(_heartbeatTopic)) {
+        _handleHeartbeatMessage(topic, payload); // Nuevo: manejar heartbeats
       }
     } catch (e) {
       print('Error handling incoming message: $e');
@@ -282,6 +317,9 @@ class MqttCommunicationService {
         _devicesController.add(discoveredDevices);
       }
 
+      // Marcar dispositivo como conectado
+      _connectedDevices[message.deviceId] = DateTime.now();
+
       _messageController.add(message);
     } catch (e) {
       print('Error handling data message: $e');
@@ -302,12 +340,16 @@ class MqttCommunicationService {
         switch (status) {
           case 'online':
             connectionStatus = ConnectionStatus.connected;
+            _connectedDevices[deviceId] =
+                DateTime.now(); // Marcar como conectado
             break;
           case 'offline':
             connectionStatus = ConnectionStatus.disconnected;
+            _connectedDevices.remove(deviceId); // Remover de conectados
             break;
           default:
             connectionStatus = ConnectionStatus.disconnected;
+            _connectedDevices.remove(deviceId);
         }
 
         _discoveredDevices[deviceId] = _discoveredDevices[deviceId]!.copyWith(
@@ -318,6 +360,45 @@ class MqttCommunicationService {
       }
     } catch (e) {
       print('Error handling status message: $e');
+    }
+  }
+
+  // Nuevo: manejar mensajes de heartbeat
+  void _handleHeartbeatMessage(String topic, String payload) {
+    try {
+      final data = jsonDecode(payload);
+      final deviceId = topic.split('/')[2]; // Extract device ID from topic
+
+      // No procesar nuestros propios mensajes
+      if (deviceId == _deviceId) return;
+
+      // Actualizar timestamp del dispositivo conectado
+      _connectedDevices[deviceId] = DateTime.now();
+
+      // Si el dispositivo no está en la lista de descubiertos, agregarlo
+      if (!_discoveredDevices.containsKey(deviceId)) {
+        final device = DeviceConnectionModel(
+          deviceId: deviceId,
+          deviceName: data['deviceName'] ?? 'Dispositivo desconocido',
+          deviceType: DeviceConnectionType.values.firstWhere(
+            (e) => e.name == data['deviceType'],
+            orElse: () => DeviceConnectionType.unknown,
+          ),
+          status: ConnectionStatus.connected,
+          lastSeen: DateTime.now(),
+        );
+        _discoveredDevices[deviceId] = device;
+      } else {
+        // Actualizar dispositivo existente
+        _discoveredDevices[deviceId] = _discoveredDevices[deviceId]!.copyWith(
+          status: ConnectionStatus.connected,
+          lastSeen: DateTime.now(),
+        );
+      }
+
+      _devicesController.add(discoveredDevices);
+    } catch (e) {
+      print('Error handling heartbeat message: $e');
     }
   }
 
@@ -384,6 +465,19 @@ class MqttCommunicationService {
     );
   }
 
+  // Nuevo: publicar heartbeat
+  Future<void> _publishHeartbeat() async {
+    final message = {
+      'deviceId': _deviceId,
+      'deviceName': _deviceName,
+      'deviceType': _deviceType!.name,
+      'timestamp': DateTime.now().toIso8601String(),
+      'status': 'alive',
+    };
+
+    await _publishMessage('$_heartbeatTopic/$_deviceId', jsonEncode(message));
+  }
+
   Future<void> _publishMessage(String topic, String message) async {
     if (_client?.connectionStatus?.state != MqttConnectionState.connected)
       return;
@@ -401,6 +495,7 @@ class MqttCommunicationService {
     _heartbeatTimer?.cancel();
     _heartbeatTimer = Timer.periodic(Duration(seconds: 30), (timer) {
       _publishStatus('online');
+      _publishHeartbeat(); // Nuevo: enviar heartbeat
     });
   }
 
@@ -414,6 +509,35 @@ class MqttCommunicationService {
     startDiscovery();
   }
 
+  // Nuevo: timer para limpiar dispositivos desconectados
+  void _startCleanupTimer() {
+    _cleanupTimer?.cancel();
+    _cleanupTimer = Timer.periodic(Duration(minutes: 1), (timer) {
+      final now = DateTime.now();
+      final devicesToRemove = <String>[];
+
+      // Remover dispositivos que no han enviado heartbeat en los últimos 3 minutos
+      _connectedDevices.forEach((deviceId, lastSeen) {
+        if (now.difference(lastSeen).inMinutes > 3) {
+          devicesToRemove.add(deviceId);
+        }
+      });
+
+      for (final deviceId in devicesToRemove) {
+        _connectedDevices.remove(deviceId);
+        if (_discoveredDevices.containsKey(deviceId)) {
+          _discoveredDevices[deviceId] = _discoveredDevices[deviceId]!.copyWith(
+            status: ConnectionStatus.disconnected,
+          );
+        }
+      }
+
+      if (devicesToRemove.isNotEmpty) {
+        _devicesController.add(discoveredDevices);
+      }
+    });
+  }
+
   void _updateConnectionStatus(ConnectionStatus status) {
     _connectionStatus = status;
     _connectionStatusController.add(status);
@@ -423,11 +547,13 @@ class MqttCommunicationService {
   void _onConnected() {
     print('MQTT Connected');
     _publishStatus('online');
+    _publishHeartbeat(); // Enviar heartbeat inicial
   }
 
   void _onDisconnected() {
     print('MQTT Disconnected');
     _updateConnectionStatus(ConnectionStatus.disconnected);
+    _connectedDevices.clear(); // Limpiar dispositivos conectados
   }
 
   void _onSubscribed(String topic) {
@@ -442,6 +568,7 @@ class MqttCommunicationService {
   void dispose() {
     _heartbeatTimer?.cancel();
     _discoveryTimer?.cancel();
+    _cleanupTimer?.cancel();
     _connectionStatusController.close();
     _devicesController.close();
     _messageController.close();
