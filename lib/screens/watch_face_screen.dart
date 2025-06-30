@@ -6,7 +6,7 @@ import '../services/calorie_service.dart';
 import '../services/settings_service.dart';
 import '../services/mqtt_communication_service.dart';
 import '../utils/color_utils.dart';
-import '../utils/device_utils.dart';
+import '../utils/device_utils.dart' as DeviceUtils;
 import '../widgets/watch_face/watch_face_layout.dart';
 import '../widgets/watch_face/watch_face_animations.dart';
 import '../widgets/watch_face/watch_face_navigation.dart';
@@ -239,11 +239,11 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
-    final deviceType = DeviceUtils.getDeviceType(
+    final deviceType = DeviceUtils.DeviceUtils.getDeviceType(
       screenSize.width,
       screenSize.height,
     );
-    final isWearable = deviceType == DeviceType.wearable;
+    final isWearable = deviceType == DeviceUtils.DeviceType.wearable;
 
     final backgroundColor = ColorUtils.getBackgroundColor(fitnessData.calories);
     final progressColor = ColorUtils.getProgressColor(fitnessData.calories);

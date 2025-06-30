@@ -6,7 +6,7 @@ import 'package:mqtt_client/mqtt_server_client.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:uuid/uuid.dart';
 import '../models/device_connection_model.dart';
-import '../utils/device_utils.dart';
+import '../utils/device_utils.dart' as DeviceUtils;
 
 class MqttCommunicationService {
   static final MqttCommunicationService _instance = MqttCommunicationService._internal();
@@ -24,7 +24,7 @@ class MqttCommunicationService {
   MqttServerClient? _client;
   String? _deviceId;
   String? _deviceName;
-  DeviceType? _deviceType;
+  DeviceConnectionType? _deviceType;
   Timer? _heartbeatTimer;
   Timer? _discoveryTimer;
 
@@ -33,8 +33,8 @@ class MqttCommunicationService {
       StreamController<ConnectionStatus>.broadcast();
   final StreamController<List<DeviceConnectionModel>> _devicesController = 
       StreamController<List<DeviceConnectionModel>>.broadcast();
-  final StreamController<MqttMessage> _messageController = 
-      StreamController<MqttMessage>.broadcast();
+  final StreamController<MqttCommunicationMessage> _messageController = 
+      StreamController<MqttCommunicationMessage>.broadcast();
 
   // Estado interno
   ConnectionStatus _connectionStatus = ConnectionStatus.disconnected;
@@ -44,7 +44,7 @@ class MqttCommunicationService {
   // Getters públicos
   Stream<ConnectionStatus> get connectionStatusStream => _connectionStatusController.stream;
   Stream<List<DeviceConnectionModel>> get devicesStream => _devicesController.stream;
-  Stream<MqttMessage> get messageStream => _messageController.stream;
+  Stream<MqttCommunicationMessage> get messageStream => _messageController.stream;
   
   ConnectionStatus get connectionStatus => _connectionStatus;
   List<DeviceConnectionModel> get discoveredDevices => _discoveredDevices.values.toList();
@@ -52,7 +52,7 @@ class MqttCommunicationService {
   bool get isConnected => _connectionStatus == ConnectionStatus.connected;
   String? get deviceId => _deviceId;
   String? get deviceName => _deviceName;
-  DeviceType? get deviceType => _deviceType;
+  DeviceConnectionType? get deviceType => _deviceType;
 
   Future<void> initialize() async {
     try {
@@ -95,16 +95,16 @@ class MqttCommunicationService {
     }
   }
 
-  DeviceType _determineDeviceType() {
+  DeviceConnectionType _determineDeviceType() {
     // En una implementación real, podrías usar características del dispositivo
     // Por ahora, usamos una lógica simple basada en el nombre o configuración
     if (_deviceName?.toLowerCase().contains('watch') == true) {
-      return DeviceType.smartwatch;
+      return DeviceConnectionType.smartwatch;
     }
     
     // Para propósitos de demostración, alternamos entre tipos
     // En producción, esto debería ser más sofisticado
-    return DeviceType.phone;
+    return DeviceConnectionType.phone;
   }
 
   Future<bool> connect() async {
@@ -229,9 +229,9 @@ class MqttCommunicationService {
       final device = DeviceConnectionModel(
         deviceId: deviceId,
         deviceName: data['deviceName'] ?? 'Dispositivo desconocido',
-        deviceType: DeviceType.values.firstWhere(
+        deviceType: DeviceConnectionType.values.firstWhere(
           (e) => e.name == data['deviceType'],
-          orElse: () => DeviceType.unknown,
+          orElse: () => DeviceConnectionType.unknown,
         ),
         status: ConnectionStatus.disconnected,
         lastSeen: DateTime.now(),
@@ -251,7 +251,7 @@ class MqttCommunicationService {
 
   void _handleDataMessage(String topic, String payload) {
     try {
-      final message = MqttMessage.fromJsonString(payload);
+      final message = MqttCommunicationMessage.fromJsonString(payload);
       
       // No procesar nuestros propios mensajes
       if (message.deviceId == _deviceId) return;
@@ -304,10 +304,10 @@ class MqttCommunicationService {
     }
   }
 
-  bool _shouldRespondToDiscovery(DeviceType discoveredDeviceType) {
+  bool _shouldRespondToDiscovery(DeviceConnectionType discoveredDeviceType) {
     // Responder si somos dispositivos complementarios
-    return (_deviceType == DeviceType.smartwatch && discoveredDeviceType == DeviceType.phone) ||
-           (_deviceType == DeviceType.phone && discoveredDeviceType == DeviceType.smartwatch);
+    return (_deviceType == DeviceConnectionType.smartwatch && discoveredDeviceType == DeviceConnectionType.phone) ||
+           (_deviceType == DeviceConnectionType.phone && discoveredDeviceType == DeviceConnectionType.smartwatch);
   }
 
   Future<void> _publishDiscoveryResponse() async {
@@ -339,7 +339,7 @@ class MqttCommunicationService {
   Future<void> sendData(Map<String, dynamic> data) async {
     if (_client?.connectionStatus?.state != MqttConnectionState.connected) return;
 
-    final message = MqttMessage(
+    final message = MqttCommunicationMessage(
       type: 'data',
       deviceId: _deviceId!,
       deviceName: _deviceName!,

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import '../services/mqtt_communication_service.dart';
 import '../models/device_connection_model.dart';
-import '../utils/device_utils.dart';
+import '../utils/device_utils.dart' as DeviceUtils;
 import 'adaptive_text.dart';
 
 class MqttConnectionWidget extends StatefulWidget {
@@ -146,8 +146,8 @@ class _MqttConnectionWidgetState extends State<MqttConnectionWidget>
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
-    final deviceType = DeviceUtils.getDeviceType(screenSize.width, screenSize.height);
-    final isWearable = deviceType == DeviceType.wearable;
+    final deviceType = DeviceUtils.DeviceUtils.getDeviceType(screenSize.width, screenSize.height);
+    final isWearable = deviceType == DeviceUtils.DeviceType.wearable;
 
     if (widget.isCompact) {
       return _buildCompactWidget(screenSize, isWearable);
@@ -409,7 +409,7 @@ class _MqttConnectionWidgetState extends State<MqttConnectionWidget>
       child: Row(
         children: [
           Icon(
-            device.deviceType == DeviceType.smartwatch 
+            device.deviceType == DeviceConnectionType.smartwatch 
                 ? Icons.watch 
                 : Icons.phone_android,
             color: device.isConnected ? Colors.green : Colors.grey,

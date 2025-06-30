@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import '../models/daily_calories.dart';
 import '../services/calorie_service.dart';
-import '../utils/device_utils.dart';
+import '../utils/device_utils.dart' as DeviceUtils;
 import '../widgets/adaptive_container.dart';
 import '../widgets/stats/stats_section.dart';
 import '../widgets/table/table_header.dart';
@@ -62,8 +62,8 @@ class _CaloriesTableScreenState extends State<CaloriesTableScreen>
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
-    final deviceType = DeviceUtils.getDeviceType(screenSize.width, screenSize.height);
-    final isWearable = deviceType == DeviceType.wearable;
+    final deviceType = DeviceUtils.DeviceUtils.getDeviceType(screenSize.width, screenSize.height);
+    final isWearable = deviceType == DeviceUtils.DeviceType.wearable;
 
     return Scaffold(
       backgroundColor: Colors.black,

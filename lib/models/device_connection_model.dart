@@ -1,13 +1,13 @@
 import 'dart:convert';
 
-enum DeviceType { smartwatch, phone, unknown }
+enum DeviceConnectionType { smartwatch, phone, unknown }
 
 enum ConnectionStatus { disconnected, connecting, connected, error }
 
 class DeviceConnectionModel {
   final String deviceId;
   final String deviceName;
-  final DeviceType deviceType;
+  final DeviceConnectionType deviceType;
   final ConnectionStatus status;
   final DateTime? lastConnected;
   final DateTime? lastSeen;
@@ -28,7 +28,7 @@ class DeviceConnectionModel {
   DeviceConnectionModel copyWith({
     String? deviceId,
     String? deviceName,
-    DeviceType? deviceType,
+    DeviceConnectionType? deviceType,
     ConnectionStatus? status,
     DateTime? lastConnected,
     DateTime? lastSeen,
@@ -64,9 +64,9 @@ class DeviceConnectionModel {
     return DeviceConnectionModel(
       deviceId: json['deviceId'] ?? '',
       deviceName: json['deviceName'] ?? '',
-      deviceType: DeviceType.values.firstWhere(
+      deviceType: DeviceConnectionType.values.firstWhere(
         (e) => e.name == json['deviceType'],
-        orElse: () => DeviceType.unknown,
+        orElse: () => DeviceConnectionType.unknown,
       ),
       status: ConnectionStatus.values.firstWhere(
         (e) => e.name == json['status'],
@@ -98,11 +98,11 @@ class DeviceConnectionModel {
 
   String get deviceTypeText {
     switch (deviceType) {
-      case DeviceType.smartwatch:
+      case DeviceConnectionType.smartwatch:
         return 'Smartwatch';
-      case DeviceType.phone:
+      case DeviceConnectionType.phone:
         return 'Teléfono';
-      case DeviceType.unknown:
+      case DeviceConnectionType.unknown:
         return 'Dispositivo desconocido';
     }
   }
@@ -129,15 +129,15 @@ class DeviceConnectionModel {
   bool get hasError => status == ConnectionStatus.error;
 }
 
-class MqttMessage {
+class MqttCommunicationMessage {
   final String type;
   final String deviceId;
   final String deviceName;
-  final DeviceType deviceType;
+  final DeviceConnectionType deviceType;
   final DateTime timestamp;
   final Map<String, dynamic> data;
 
-  MqttMessage({
+  MqttCommunicationMessage({
     required this.type,
     required this.deviceId,
     required this.deviceName,
@@ -157,14 +157,14 @@ class MqttMessage {
     };
   }
 
-  factory MqttMessage.fromJson(Map<String, dynamic> json) {
-    return MqttMessage(
+  factory MqttCommunicationMessage.fromJson(Map<String, dynamic> json) {
+    return MqttCommunicationMessage(
       type: json['type'] ?? '',
       deviceId: json['deviceId'] ?? '',
       deviceName: json['deviceName'] ?? '',
-      deviceType: DeviceType.values.firstWhere(
+      deviceType: DeviceConnectionType.values.firstWhere(
         (e) => e.name == json['deviceType'],
-        orElse: () => DeviceType.unknown,
+        orElse: () => DeviceConnectionType.unknown,
       ),
       timestamp: DateTime.parse(json['timestamp']),
       data: json['data'] ?? {},
@@ -173,7 +173,7 @@ class MqttMessage {
 
   String toJsonString() => jsonEncode(toJson());
 
-  static MqttMessage fromJsonString(String jsonString) {
-    return MqttMessage.fromJson(jsonDecode(jsonString));
+  static MqttCommunicationMessage fromJsonString(String jsonString) {
+    return MqttCommunicationMessage.fromJson(jsonDecode(jsonString));
   }
 }

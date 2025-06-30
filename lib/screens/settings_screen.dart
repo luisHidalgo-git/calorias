@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import '../models/wearable_settings.dart';
 import '../services/settings_service.dart';
-import '../utils/device_utils.dart';
+import '../utils/device_utils.dart' as DeviceUtils;
 import '../widgets/adaptive_text.dart';
 import '../widgets/settings_section.dart';
 import '../widgets/settings_tile.dart';
@@ -157,11 +157,11 @@ class _SettingsScreenState extends State<SettingsScreen>
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
-    final deviceType = DeviceUtils.getDeviceType(
+    final deviceType = DeviceUtils.DeviceUtils.getDeviceType(
       screenSize.width,
       screenSize.height,
     );
-    final isWearable = deviceType == DeviceType.wearable;
+    final isWearable = deviceType == DeviceUtils.DeviceType.wearable;
 
     if (isWearable) {
       return _buildWearableView(screenSize);
