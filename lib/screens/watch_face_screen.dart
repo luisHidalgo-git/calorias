@@ -114,7 +114,7 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
     await _settingsService.loadSettings();
     final settings = _settingsService.currentSettings;
 
-    // Aplicar configuración inicial
+    // Aplicar configuración inicial SILENCIOSAMENTE (sin notificaciones)
     fitnessData.applySettings({
       'dailyCaloriesGoal': settings.dailyCaloriesGoal,
       'maxHeartRate': settings.maxHeartRate,
@@ -140,7 +140,7 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
         _currentReadingFrequency = newFrequency;
         _restartActivityTimer();
 
-        // Mostrar notificación de cambio
+        // Mostrar notificación de cambio SOLO cuando se cambia desde configuración
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Row(
@@ -159,40 +159,9 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
       }
     }
 
-    // Mostrar notificación de cambios aplicados
-    if (config.containsKey('dailyCaloriesGoal')) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              Icon(Icons.local_fire_department, color: Colors.orange),
-              SizedBox(width: 8),
-              Text(
-                'Meta actualizada: ${config['dailyCaloriesGoal'].toInt()} calorías',
-              ),
-            ],
-          ),
-          backgroundColor: Colors.orange.shade700,
-          duration: Duration(seconds: 2),
-        ),
-      );
-    }
-
-    if (config.containsKey('maxHeartRate')) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              Icon(Icons.favorite, color: Colors.pink),
-              SizedBox(width: 8),
-              Text('Ritmo cardíaco máximo: ${config['maxHeartRate']} BPM'),
-            ],
-          ),
-          backgroundColor: Colors.pink.shade700,
-          duration: Duration(seconds: 2),
-        ),
-      );
-    }
+    // ELIMINADO: Notificaciones de cambios aplicados al inicio
+    // Solo mostrar notificaciones cuando se cambian desde la pantalla de configuración
+    // No al cargar la configuración inicial
 
     setState(() {});
   }
