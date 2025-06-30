@@ -570,7 +570,7 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
     );
   }
 
-  // Nuevo widget para el contenido central interactivo
+  // Widget para el contenido central interactivo - SIN TEXTOS DE AYUDA
   Widget _buildInteractiveCenterContent(
     FitnessData fitnessData,
     double watchSize,
@@ -634,25 +634,6 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                  // Indicador visual de que es interactivo
-                  Container(
-                    margin: EdgeInsets.only(top: watchSize * 0.01),
-                    padding: EdgeInsets.symmetric(
-                      horizontal: watchSize * 0.02,
-                      vertical: watchSize * 0.005,
-                    ),
-                    decoration: BoxDecoration(
-                      color: accentColor.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(watchSize * 0.01),
-                      border: Border.all(color: accentColor.withOpacity(0.3)),
-                    ),
-                    child: AdaptiveText(
-                      'Mantén presionado',
-                      fontSize: watchSize * (isRound ? 0.012 : 0.013),
-                      color: accentColor.withOpacity(0.7),
-                      style: TextStyle(fontStyle: FontStyle.italic),
-                    ),
-                  ),
                 ],
               ),
             ),
@@ -676,23 +657,11 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
                   width: 1,
                 ),
               ),
-              child: Column(
-                children: [
-                  AdaptiveText(
-                    '♥ ${fitnessData.heartRate}',
-                    fontSize: watchSize * (isRound ? 0.034 : 0.035),
-                    fontWeight: FontWeight.w600,
-                    color: _getHeartRateColor(),
-                  ),
-                  SizedBox(height: watchSize * 0.005),
-                  // Indicador visual de que es interactivo
-                  AdaptiveText(
-                    'Mantén presionado',
-                    fontSize: watchSize * (isRound ? 0.012 : 0.013),
-                    color: _getHeartRateColor().withOpacity(0.6),
-                    style: TextStyle(fontStyle: FontStyle.italic),
-                  ),
-                ],
+              child: AdaptiveText(
+                '♥ ${fitnessData.heartRate}',
+                fontSize: watchSize * (isRound ? 0.034 : 0.035),
+                fontWeight: FontWeight.w600,
+                color: _getHeartRateColor(),
               ),
             ),
           ),
@@ -708,18 +677,20 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
     Color progressColor,
   ) {
     return Padding(
-      padding: EdgeInsets.all(screenSize.width * 0.04), // Reducido padding
+      padding: EdgeInsets.all(screenSize.width * 0.04),
       child: Column(
         children: [
           // Header con navegación y notificaciones
           _buildPhoneHeader(screenSize, accentColor),
 
-          SizedBox(height: screenSize.height * 0.02), // Reducido espacio
-          // Tiempo y estado - MÁS GRANDE
+          SizedBox(height: screenSize.height * 0.02),
+
+          // Tiempo y estado
           _buildPhoneTimeSection(screenSize, accentColor),
 
-          SizedBox(height: screenSize.height * 0.025), // Reducido espacio
-          // Área principal del progreso - MÁS GRANDE
+          SizedBox(height: screenSize.height * 0.025),
+
+          // Área principal del progreso
           Expanded(
             child: _buildPhoneProgressSection(
               screenSize,
@@ -728,8 +699,9 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
             ),
           ),
 
-          SizedBox(height: screenSize.height * 0.02), // Reducido espacio
-          // Estadísticas inferiores - MÁS COMPACTAS
+          SizedBox(height: screenSize.height * 0.02),
+
+          // Estadísticas inferiores
           _buildPhoneStatsSection(screenSize, progressColor, accentColor),
         ],
       ),
@@ -743,7 +715,7 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
         GestureDetector(
           onTap: _navigateToTable,
           child: Container(
-            padding: EdgeInsets.all(10), // Reducido padding
+            padding: EdgeInsets.all(10),
             decoration: BoxDecoration(
               color: accentColor.withOpacity(0.15),
               borderRadius: BorderRadius.circular(10),
@@ -752,14 +724,14 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
             child: Icon(
               Icons.table_chart_outlined,
               color: accentColor,
-              size: 20, // Reducido tamaño
+              size: 20,
             ),
           ),
         ),
 
         AdaptiveText(
           'CalorieWatch',
-          fontSize: screenSize.width * 0.055, // Reducido tamaño
+          fontSize: screenSize.width * 0.055,
           fontWeight: FontWeight.bold,
           color: Colors.white,
         ),
@@ -840,10 +812,10 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
   Widget _buildPhoneTimeSection(Size screenSize, Color accentColor) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(18), // Aumentado padding
+      padding: EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: accentColor.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(18), // Aumentado border radius
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(color: accentColor.withOpacity(0.3)),
       ),
       child: Column(
@@ -854,7 +826,7 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
               final now = DateTime.now();
               return AdaptiveText(
                 '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}',
-                fontSize: screenSize.width * 0.14, // Aumentado tamaño
+                fontSize: screenSize.width * 0.14,
                 fontWeight: FontWeight.w300,
                 color: accentColor,
                 style: TextStyle(letterSpacing: 4.0),
@@ -864,7 +836,7 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
           SizedBox(height: 10),
           AdaptiveText(
             ColorUtils.getMotivationalText(fitnessData.calories),
-            fontSize: screenSize.width * 0.05, // Aumentado tamaño
+            fontSize: screenSize.width * 0.05,
             color: accentColor.withOpacity(0.8),
             fontWeight: FontWeight.w600,
           ),
@@ -878,7 +850,7 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
     Color progressColor,
     Color accentColor,
   ) {
-    final progressSize = screenSize.width * 0.8; // Aumentado de 0.7 a 0.8
+    final progressSize = screenSize.width * 0.8;
 
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -908,7 +880,7 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
                               fitnessData.calories /
                               fitnessData.dailyCaloriesGoal,
                           color: progressColor,
-                          strokeWidth: 18, // Aumentado grosor
+                          strokeWidth: 18,
                           radius: progressSize * 0.4,
                         ),
                         Center(
@@ -918,43 +890,20 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
                               Icon(
                                 Icons.local_fire_department,
                                 color: accentColor,
-                                size: progressSize * 0.14, // Aumentado tamaño
+                                size: progressSize * 0.14,
                               ),
                               SizedBox(height: 12),
                               AdaptiveText(
                                 fitnessData.calories.toStringAsFixed(0),
-                                fontSize:
-                                    progressSize * 0.18, // Aumentado tamaño
+                                fontSize: progressSize * 0.18,
                                 fontWeight: FontWeight.bold,
                                 color: accentColor,
                               ),
                               AdaptiveText(
                                 'CALORÍAS',
-                                fontSize:
-                                    progressSize * 0.045, // Aumentado tamaño
+                                fontSize: progressSize * 0.045,
                                 color: accentColor.withOpacity(0.8),
                                 style: TextStyle(letterSpacing: 2.0),
-                              ),
-                              SizedBox(height: 12),
-                              Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: accentColor.withOpacity(0.15),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: accentColor.withOpacity(0.3),
-                                  ),
-                                ),
-                                child: AdaptiveText(
-                                  'Mantén presionado para ajustar',
-                                  fontSize:
-                                      progressSize * 0.032, // Aumentado tamaño
-                                  color: accentColor.withOpacity(0.8),
-                                  style: TextStyle(fontStyle: FontStyle.italic),
-                                ),
                               ),
                             ],
                           ),
@@ -970,17 +919,14 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
 
         SizedBox(height: screenSize.height * 0.03),
 
-        // Ritmo cardíaco - CLICKEABLE CON MANTENER PRESIONADO - MÁS GRANDE
+        // Ritmo cardíaco - CLICKEABLE CON MANTENER PRESIONADO
         Material(
           color: Colors.transparent,
           child: InkWell(
             onLongPress: _showHeartRateAdjustment,
             borderRadius: BorderRadius.circular(18),
             child: Container(
-              padding: EdgeInsets.symmetric(
-                horizontal: 28,
-                vertical: 18,
-              ), // Aumentado padding
+              padding: EdgeInsets.symmetric(horizontal: 28, vertical: 18),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(18),
                 color: _getHeartRateColor().withOpacity(0.15),
@@ -988,41 +934,16 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
                   color: _getHeartRateColor().withOpacity(0.3),
                 ),
               ),
-              child: Column(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.favorite,
-                        color: _getHeartRateColor(),
-                        size: 28, // Aumentado tamaño
-                      ),
-                      SizedBox(width: 12),
-                      AdaptiveText(
-                        '${fitnessData.heartRate} BPM',
-                        fontSize: screenSize.width * 0.06, // Aumentado tamaño
-                        fontWeight: FontWeight.w600,
-                        color: _getHeartRateColor(),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 10),
-                  Container(
-                    padding: EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: _getHeartRateColor().withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: _getHeartRateColor().withOpacity(0.2),
-                      ),
-                    ),
-                    child: AdaptiveText(
-                      'Mantén presionado para ajustar',
-                      fontSize: screenSize.width * 0.035, // Aumentado tamaño
-                      color: _getHeartRateColor().withOpacity(0.8),
-                      style: TextStyle(fontStyle: FontStyle.italic),
-                    ),
+                  Icon(Icons.favorite, color: _getHeartRateColor(), size: 28),
+                  SizedBox(width: 12),
+                  AdaptiveText(
+                    '${fitnessData.heartRate} BPM',
+                    fontSize: screenSize.width * 0.06,
+                    fontWeight: FontWeight.w600,
+                    color: _getHeartRateColor(),
                   ),
                 ],
               ),
@@ -1042,10 +963,10 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
 
     return Column(
       children: [
-        // Barra de progreso - MÁS GRUESA
+        // Barra de progreso
         Container(
           width: double.infinity,
-          height: 10, // Aumentado grosor
+          height: 10,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(5),
             color: progressColor.withOpacity(0.2),
@@ -1075,13 +996,13 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
           children: [
             AdaptiveText(
               '${(progress * 100).toStringAsFixed(0)}% OBJETIVO',
-              fontSize: screenSize.width * 0.045, // Aumentado tamaño
+              fontSize: screenSize.width * 0.045,
               color: progressColor.withOpacity(0.9),
               fontWeight: FontWeight.w600,
             ),
             AdaptiveText(
               '${fitnessData.dailyCaloriesGoal.toInt()} cal meta',
-              fontSize: screenSize.width * 0.045, // Aumentado tamaño
+              fontSize: screenSize.width * 0.045,
               color: accentColor.withOpacity(0.7),
               fontWeight: FontWeight.w500,
             ),
@@ -1090,10 +1011,10 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
 
         SizedBox(height: 16),
 
-        // Descripción de actividad - MÁS GRANDE
+        // Descripción de actividad
         Container(
           width: double.infinity,
-          padding: EdgeInsets.all(18), // Aumentado padding
+          padding: EdgeInsets.all(18),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),
             color: accentColor.withOpacity(0.1),
@@ -1102,7 +1023,7 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
           child: Center(
             child: AdaptiveText(
               ColorUtils.getActivityDescription(fitnessData.calories),
-              fontSize: screenSize.width * 0.05, // Aumentado tamaño
+              fontSize: screenSize.width * 0.05,
               color: accentColor.withOpacity(0.9),
               fontWeight: FontWeight.w500,
             ),
