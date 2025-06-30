@@ -11,6 +11,7 @@ import '../notification_icon.dart';
 import '../watch_button.dart';
 import '../adaptive_text.dart';
 import '../branded_logo.dart';
+import '../mqtt_connection_widget.dart';
 import 'watch_face_animations.dart';
 import 'interactive_center_content.dart';
 
@@ -61,6 +62,13 @@ class WearableLayout extends StatelessWidget {
           ),
         ),
 
+        // Widget de conexión MQTT en la esquina superior izquierda
+        Positioned(
+          top: screenSize.height * 0.02,
+          left: screenSize.width * 0.02,
+          child: MqttConnectionWidget(isCompact: true),
+        ),
+
         // Botones posicionados de manera adaptativa
         if (isRound) ...[
           Positioned(
@@ -83,7 +91,7 @@ class WearableLayout extends StatelessWidget {
           ),
         ] else ...[
           Positioned(
-            top: screenSize.height * 0.02,
+            top: screenSize.height * 0.08,
             left: screenSize.width * 0.05,
             child: WatchButton(
               onTap: onNavigateToTable,
@@ -93,7 +101,7 @@ class WearableLayout extends StatelessWidget {
             ),
           ),
           Positioned(
-            top: screenSize.height * 0.02,
+            top: screenSize.height * 0.08,
             right: screenSize.width * 0.05,
             child: NotificationIcon(
               notifications: notifications,

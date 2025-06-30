@@ -5,6 +5,7 @@ import '../../utils/device_utils.dart';
 import '../../utils/color_utils.dart';
 import '../progress_ring.dart';
 import '../adaptive_text.dart';
+import '../mqtt_connection_widget.dart';
 import 'watch_face_animations.dart';
 
 class PhoneLayout extends StatelessWidget {
@@ -50,6 +51,9 @@ class PhoneLayout extends StatelessWidget {
           Expanded(child: _buildPhoneProgressSection()),
           SizedBox(height: screenSize.height * 0.02),
           _buildPhoneStatsSection(),
+          SizedBox(height: screenSize.height * 0.02),
+          // Widget de conexión MQTT completo para teléfonos
+          MqttConnectionWidget(isCompact: false),
         ],
       ),
     );

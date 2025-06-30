@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import '../models/fitness_data.dart';
 import '../services/calorie_service.dart';
 import '../services/settings_service.dart';
+import '../services/mqtt_communication_service.dart';
 import '../utils/color_utils.dart';
 import '../utils/device_utils.dart';
 import '../widgets/watch_face/watch_face_layout.dart';
@@ -25,12 +26,14 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
   FitnessData fitnessData = FitnessData();
   final CalorieService _calorieService = CalorieService();
   final SettingsService _settingsService = SettingsService();
+  final MqttCommunicationService _mqttService = MqttCommunicationService();
 
   // State management
   Timer? _activityTimer;
   List<CalorieEntry> _notifications = [];
   StreamSubscription? _newEntrySubscription;
   StreamSubscription? _configUpdateSubscription;
+  StreamSubscription? _mqttMessageSubscription;
   int _currentReadingFrequency = 3;
 
   // Animation controllers
@@ -42,6 +45,7 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
     _animations = WatchFaceAnimations(this);
     _setupStreams();
     _loadInitialSettings();
+    _initializeMqtt();
     _startAutomaticActivity();
   }
 
@@ -51,6 +55,8 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
     _activityTimer?.cancel();
     _newEntrySubscription?.cancel();
     _configUpdateSubscription?.cancel();
+    _mqttMessageSubscription?.cancel();
+    _mqttService.dispose();
     super.dispose();
   }
 
@@ -70,6 +76,49 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
         _applyConfigurationChanges(config);
       }
     });
+  }
+
+  Future<void> _initializeMqtt() async {
+    await _mqttService.initialize();
+    
+    // Escuchar mensajes MQTT
+    _mqttMessageSubscription = _mqttService.messageStream.listen((message) {
+      if (mounted) {
+        _handleMqttMessage(message);
+      }
+    });
+  }
+
+  void _handleMqttMessage(dynamic message) {
+    try {
+      // Procesar mensajes de sincronización de datos
+      if (message.type == 'calorie_sync') {
+        final calories = message.data['calories']?.toDouble() ?? 0.0;
+        final heartRate = message.data['heartRate']?.toInt() ?? 72;
+        
+        setState(() {
+          fitnessData.setCalories(calories);
+          fitnessData.setHeartRate(heartRate);
+        });
+        
+        _calorieService.updateCurrentCalories(calories, fitnessData);
+      } else if (message.type == 'settings_sync') {
+        // Sincronizar configuraciones
+        final newGoal = message.data['dailyCaloriesGoal']?.toDouble();
+        final newMaxHR = message.data['maxHeartRate']?.toInt();
+        
+        if (newGoal != null) {
+          fitnessData.updateCaloriesGoal(newGoal);
+        }
+        if (newMaxHR != null) {
+          fitnessData.updateMaxHeartRate(newMaxHR);
+        }
+        
+        setState(() {});
+      }
+    } catch (e) {
+      print('Error handling MQTT message: $e');
+    }
   }
 
   Future<void> _loadInitialSettings() async {
@@ -115,6 +164,9 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
       }
     }
 
+    // Enviar cambios por MQTT
+    _sendDataToMqtt();
+
     setState(() {});
   }
 
@@ -143,9 +195,25 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
           });
 
           _animations.triggerBackgroundPulse();
+          
+          // Enviar datos actualizados por MQTT
+          _sendDataToMqtt();
         }
       },
     );
+  }
+
+  void _sendDataToMqtt() {
+    if (_mqttService.isConnected) {
+      _mqttService.sendData({
+        'type': 'calorie_sync',
+        'calories': fitnessData.calories,
+        'heartRate': fitnessData.heartRate,
+        'dailyCaloriesGoal': fitnessData.dailyCaloriesGoal,
+        'maxHeartRate': fitnessData.maxHeartRate,
+        'timestamp': DateTime.now().toIso8601String(),
+      });
+    }
   }
 
   void _showGoalReachedAnimation() {
@@ -240,6 +308,7 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
                             fitnessData,
                           );
                         });
+                        _sendDataToMqtt();
                       },
                     ),
                 onShowHeartRateAdjustment: () =>
@@ -254,6 +323,7 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
                             fitnessData,
                           );
                         });
+                        _sendDataToMqtt();
                       },
                     ),
               ),
