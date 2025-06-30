@@ -64,7 +64,10 @@ class _CaloriesTableScreenState extends State<CaloriesTableScreen>
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
-    final deviceType = DeviceUtils.getDeviceType(screenSize.width, screenSize.height);
+    final deviceType = DeviceUtils.getDeviceType(
+      screenSize.width,
+      screenSize.height,
+    );
     final layoutConfig = DeviceUtils.getLayoutConfig(deviceType);
     final isWearable = deviceType == DeviceType.wearable;
 
@@ -73,7 +76,7 @@ class _CaloriesTableScreenState extends State<CaloriesTableScreen>
       body: SafeArea(
         child: FadeTransition(
           opacity: _fadeAnimation,
-          child: isWearable 
+          child: isWearable
               ? _buildWearableLayout(screenSize, layoutConfig)
               : _buildPhoneLayout(screenSize, layoutConfig),
         ),
@@ -83,19 +86,22 @@ class _CaloriesTableScreenState extends State<CaloriesTableScreen>
 
   Widget _buildWearableLayout(Size screenSize, LayoutConfig config) {
     final isRound = ScreenUtils.isRoundScreen(screenSize);
-    
+
     return AdaptiveContainer(
-      padding: EdgeInsets.all(screenSize.width * 0.04),
+      padding: EdgeInsets.all(screenSize.width * (isRound ? 0.02 : 0.04)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildWearableHeader(screenSize, isRound),
-          SizedBox(height: screenSize.height * 0.025),
+          SizedBox(height: screenSize.height * (isRound ? 0.008 : 0.025)),
           _buildStatsCards(screenSize),
-          SizedBox(height: screenSize.height * 0.025),
-          _buildTableHeader(screenSize, isRound),
-          SizedBox(height: screenSize.height * 0.015),
-          Expanded(child: _buildTable(screenSize)),
+          SizedBox(height: screenSize.height * (isRound ? 0.008 : 0.025)),
+          // Solo mostrar header de tabla en pantallas cuadradas
+          if (!isRound) ...[
+            _buildTableHeader(screenSize, isRound),
+            SizedBox(height: screenSize.height * 0.015),
+          ],
+          Expanded(child: _buildTable(screenSize, isRound)),
         ],
       ),
     );
@@ -133,21 +139,20 @@ class _CaloriesTableScreenState extends State<CaloriesTableScreen>
               size: watchSize,
             ),
           ),
-          SizedBox(height: screenSize.height * 0.02),
+          SizedBox(height: screenSize.height * 0.01),
           Center(
             child: Column(
               children: [
                 AdaptiveText(
                   'Historial de Calorías',
-                  fontSize: screenSize.width * 0.055,
+                  fontSize: screenSize.width * 0.045,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
                   textAlign: TextAlign.center,
                 ),
-                SizedBox(height: screenSize.height * 0.005),
                 AdaptiveText(
                   'Seguimiento diario de actividad',
-                  fontSize: screenSize.width * 0.032,
+                  fontSize: screenSize.width * 0.024,
                   color: Colors.grey.shade400,
                   textAlign: TextAlign.center,
                 ),
@@ -234,8 +239,13 @@ class _CaloriesTableScreenState extends State<CaloriesTableScreen>
   }
 
   Widget _buildPhoneStatsSection(Size screenSize) {
-    final totalCalories = _records.fold<double>(0, (sum, record) => sum + record.calories);
-    final avgCalories = _records.isNotEmpty ? totalCalories / _records.length : 0;
+    final totalCalories = _records.fold<double>(
+      0,
+      (sum, record) => sum + record.calories,
+    );
+    final avgCalories = _records.isNotEmpty
+        ? totalCalories / _records.length
+        : 0;
     final goalsReached = _records.where((record) => record.goalReached).length;
 
     return Container(
@@ -293,7 +303,13 @@ class _CaloriesTableScreenState extends State<CaloriesTableScreen>
     );
   }
 
-  Widget _buildPhoneStatCard(String title, String value, String unit, Color color, Size screenSize) {
+  Widget _buildPhoneStatCard(
+    String title,
+    String value,
+    String unit,
+    Color color,
+    Size screenSize,
+  ) {
     return Container(
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -379,7 +395,7 @@ class _CaloriesTableScreenState extends State<CaloriesTableScreen>
             ),
           ),
           Expanded(
-            child: _records.isEmpty 
+            child: _records.isEmpty
                 ? _buildEmptyState(screenSize)
                 : ListView.builder(
                     padding: EdgeInsets.all(8),
@@ -491,18 +507,35 @@ class _CaloriesTableScreenState extends State<CaloriesTableScreen>
     );
   }
 
-  Widget _buildTable(Size screenSize) {
+  Widget _buildTable(Size screenSize, bool isRound) {
     if (_records.isEmpty) {
       return _buildEmptyState(screenSize);
     }
 
-    return ListView.builder(
-      itemCount: _records.length,
-      itemBuilder: (context, index) {
-        final record = _records[index];
-        final isToday = _isToday(record.date);
-        return TableRowWidget(record: record, isToday: isToday);
-      },
+    return Container(
+      // Padding optimizado para pantallas redondas con mejor centrado
+      padding: isRound
+          ? EdgeInsets.symmetric(horizontal: screenSize.width * 0.01)
+          : EdgeInsets.zero,
+      child: ListView.builder(
+        // Padding adicional para el contenido del ListView - mejor centrado y más espacio inferior
+        padding: isRound
+            ? EdgeInsets.only(
+                top: screenSize.height * 0.005,
+                bottom:
+                    screenSize.height *
+                    0.08, // Mucho más espacio inferior para evitar cortes
+                left: screenSize.width * 0.01,
+                right: screenSize.width * 0.01,
+              )
+            : EdgeInsets.zero,
+        itemCount: _records.length,
+        itemBuilder: (context, index) {
+          final record = _records[index];
+          final isToday = _isToday(record.date);
+          return TableRowWidget(record: record, isToday: isToday);
+        },
+      ),
     );
   }
 
