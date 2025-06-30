@@ -9,7 +9,8 @@ import '../models/device_connection_model.dart';
 import '../utils/device_utils.dart' as DeviceUtils;
 
 class MqttCommunicationService {
-  static final MqttCommunicationService _instance = MqttCommunicationService._internal();
+  static final MqttCommunicationService _instance =
+      MqttCommunicationService._internal();
   factory MqttCommunicationService() => _instance;
   MqttCommunicationService._internal();
 
@@ -29,11 +30,11 @@ class MqttCommunicationService {
   Timer? _discoveryTimer;
 
   // Streams para comunicar el estado
-  final StreamController<ConnectionStatus> _connectionStatusController = 
+  final StreamController<ConnectionStatus> _connectionStatusController =
       StreamController<ConnectionStatus>.broadcast();
-  final StreamController<List<DeviceConnectionModel>> _devicesController = 
+  final StreamController<List<DeviceConnectionModel>> _devicesController =
       StreamController<List<DeviceConnectionModel>>.broadcast();
-  final StreamController<MqttCommunicationMessage> _messageController = 
+  final StreamController<MqttCommunicationMessage> _messageController =
       StreamController<MqttCommunicationMessage>.broadcast();
 
   // Estado interno
@@ -42,12 +43,16 @@ class MqttCommunicationService {
   DeviceConnectionModel? _connectedDevice;
 
   // Getters públicos
-  Stream<ConnectionStatus> get connectionStatusStream => _connectionStatusController.stream;
-  Stream<List<DeviceConnectionModel>> get devicesStream => _devicesController.stream;
-  Stream<MqttCommunicationMessage> get messageStream => _messageController.stream;
-  
+  Stream<ConnectionStatus> get connectionStatusStream =>
+      _connectionStatusController.stream;
+  Stream<List<DeviceConnectionModel>> get devicesStream =>
+      _devicesController.stream;
+  Stream<MqttCommunicationMessage> get messageStream =>
+      _messageController.stream;
+
   ConnectionStatus get connectionStatus => _connectionStatus;
-  List<DeviceConnectionModel> get discoveredDevices => _discoveredDevices.values.toList();
+  List<DeviceConnectionModel> get discoveredDevices =>
+      _discoveredDevices.values.toList();
   DeviceConnectionModel? get connectedDevice => _connectedDevice;
   bool get isConnected => _connectionStatus == ConnectionStatus.connected;
   String? get deviceId => _deviceId;
@@ -66,13 +71,13 @@ class MqttCommunicationService {
   Future<void> _initializeDeviceInfo() async {
     final deviceInfo = DeviceInfoPlugin();
     final uuid = Uuid();
-    
+
     try {
       if (Platform.isAndroid) {
         final androidInfo = await deviceInfo.androidInfo;
         _deviceName = androidInfo.model;
         _deviceId = androidInfo.id;
-        
+
         // Determinar tipo de dispositivo basado en el tamaño de pantalla
         // En una implementación real, podrías usar otras características
         _deviceType = _determineDeviceType();
@@ -101,14 +106,14 @@ class MqttCommunicationService {
     if (_deviceName?.toLowerCase().contains('watch') == true) {
       return DeviceConnectionType.smartwatch;
     }
-    
+
     // Para propósitos de demostración, alternamos entre tipos
     // En producción, esto debería ser más sofisticado
     return DeviceConnectionType.phone;
   }
 
   Future<bool> connect() async {
-    if (_connectionStatus == ConnectionStatus.connecting || 
+    if (_connectionStatus == ConnectionStatus.connecting ||
         _connectionStatus == ConnectionStatus.connected) {
       return _connectionStatus == ConnectionStatus.connected;
     }
@@ -122,7 +127,7 @@ class MqttCommunicationService {
       _client!.keepAlivePeriod = 30;
       _client!.autoReconnect = true;
       _client!.resubscribeOnAutoReconnect = true;
-      _client!.logging(on: true);
+      _client!.logging(on: false); // Desactivar logging para evitar spam
 
       // Configurar callbacks
       _client!.onConnected = _onConnected;
@@ -134,7 +139,9 @@ class MqttCommunicationService {
       final connMessage = MqttConnectMessage()
           .withClientIdentifier(_deviceId!)
           .withWillTopic('$_statusTopic/$_deviceId/offline')
-          .withWillMessage('{"status": "offline", "timestamp": "${DateTime.now().toIso8601String()}"}')
+          .withWillMessage(
+            '{"status": "offline", "timestamp": "${DateTime.now().toIso8601String()}"}',
+          )
           .withWillQos(MqttQos.atLeastOnce)
           .startClean()
           .withWillRetain();
@@ -164,13 +171,13 @@ class MqttCommunicationService {
     try {
       _heartbeatTimer?.cancel();
       _discoveryTimer?.cancel();
-      
+
       if (_client?.connectionStatus?.state == MqttConnectionState.connected) {
         // Enviar mensaje de desconexión
         await _publishStatus('offline');
         _client!.disconnect();
       }
-      
+
       _updateConnectionStatus(ConnectionStatus.disconnected);
       _discoveredDevices.clear();
       _connectedDevice = null;
@@ -181,7 +188,8 @@ class MqttCommunicationService {
   }
 
   void _setupSubscriptions() {
-    if (_client?.connectionStatus?.state != MqttConnectionState.connected) return;
+    if (_client?.connectionStatus?.state != MqttConnectionState.connected)
+      return;
 
     // Suscribirse a todos los topics relevantes
     _client!.subscribe(_discoveryTopic, MqttQos.atLeastOnce);
@@ -196,12 +204,20 @@ class MqttCommunicationService {
     });
   }
 
-  void _handleIncomingMessage(MqttReceivedMessage<MqttMessage> receivedMessage) {
+  void _handleIncomingMessage(
+    MqttReceivedMessage<MqttMessage> receivedMessage,
+  ) {
     try {
       final topic = receivedMessage.topic;
-      final payload = MqttPublishPayload.bytesToStringAsString(
-        receivedMessage.payload.message,
-      );
+
+      // Corregir el acceso al payload del mensaje
+      String payload = '';
+      if (receivedMessage.payload is MqttPublishMessage) {
+        final publishMessage = receivedMessage.payload as MqttPublishMessage;
+        payload = MqttPublishPayload.bytesToStringAsString(
+          publishMessage.payload.message,
+        );
+      }
 
       print('Received message on topic: $topic');
       print('Payload: $payload');
@@ -222,7 +238,7 @@ class MqttCommunicationService {
     try {
       final data = jsonDecode(payload);
       final deviceId = data['deviceId'];
-      
+
       // No procesar nuestros propios mensajes
       if (deviceId == _deviceId) return;
 
@@ -252,16 +268,17 @@ class MqttCommunicationService {
   void _handleDataMessage(String topic, String payload) {
     try {
       final message = MqttCommunicationMessage.fromJsonString(payload);
-      
+
       // No procesar nuestros propios mensajes
       if (message.deviceId == _deviceId) return;
 
       // Actualizar último mensaje del dispositivo
       if (_discoveredDevices.containsKey(message.deviceId)) {
-        _discoveredDevices[message.deviceId] = _discoveredDevices[message.deviceId]!.copyWith(
-          lastSeen: DateTime.now(),
-          lastData: message.data,
-        );
+        _discoveredDevices[message.deviceId] =
+            _discoveredDevices[message.deviceId]!.copyWith(
+              lastSeen: DateTime.now(),
+              lastData: message.data,
+            );
         _devicesController.add(discoveredDevices);
       }
 
@@ -276,7 +293,7 @@ class MqttCommunicationService {
       final data = jsonDecode(payload);
       final deviceId = topic.split('/')[2]; // Extract device ID from topic
       final status = data['status'];
-      
+
       // No procesar nuestros propios mensajes
       if (deviceId == _deviceId) return;
 
@@ -306,8 +323,10 @@ class MqttCommunicationService {
 
   bool _shouldRespondToDiscovery(DeviceConnectionType discoveredDeviceType) {
     // Responder si somos dispositivos complementarios
-    return (_deviceType == DeviceConnectionType.smartwatch && discoveredDeviceType == DeviceConnectionType.phone) ||
-           (_deviceType == DeviceConnectionType.phone && discoveredDeviceType == DeviceConnectionType.smartwatch);
+    return (_deviceType == DeviceConnectionType.smartwatch &&
+            discoveredDeviceType == DeviceConnectionType.phone) ||
+        (_deviceType == DeviceConnectionType.phone &&
+            discoveredDeviceType == DeviceConnectionType.smartwatch);
   }
 
   Future<void> _publishDiscoveryResponse() async {
@@ -323,7 +342,8 @@ class MqttCommunicationService {
   }
 
   Future<void> startDiscovery() async {
-    if (_client?.connectionStatus?.state != MqttConnectionState.connected) return;
+    if (_client?.connectionStatus?.state != MqttConnectionState.connected)
+      return;
 
     final message = {
       'deviceId': _deviceId,
@@ -337,7 +357,8 @@ class MqttCommunicationService {
   }
 
   Future<void> sendData(Map<String, dynamic> data) async {
-    if (_client?.connectionStatus?.state != MqttConnectionState.connected) return;
+    if (_client?.connectionStatus?.state != MqttConnectionState.connected)
+      return;
 
     final message = MqttCommunicationMessage(
       type: 'data',
@@ -357,15 +378,23 @@ class MqttCommunicationService {
       'timestamp': DateTime.now().toIso8601String(),
     };
 
-    await _publishMessage('$_statusTopic/$_deviceId/$status', jsonEncode(message));
+    await _publishMessage(
+      '$_statusTopic/$_deviceId/$status',
+      jsonEncode(message),
+    );
   }
 
   Future<void> _publishMessage(String topic, String message) async {
-    if (_client?.connectionStatus?.state != MqttConnectionState.connected) return;
+    if (_client?.connectionStatus?.state != MqttConnectionState.connected)
+      return;
 
-    final builder = MqttClientPayloadBuilder();
-    builder.addString(message);
-    _client!.publishMessage(topic, MqttQos.atLeastOnce, builder.payload!);
+    try {
+      final builder = MqttClientPayloadBuilder();
+      builder.addString(message);
+      _client!.publishMessage(topic, MqttQos.atLeastOnce, builder.payload!);
+    } catch (e) {
+      print('Error publishing message: $e');
+    }
   }
 
   void _startHeartbeat() {
@@ -380,7 +409,7 @@ class MqttCommunicationService {
     _discoveryTimer = Timer.periodic(Duration(seconds: 60), (timer) {
       startDiscovery();
     });
-    
+
     // Enviar discovery inicial
     startDiscovery();
   }
