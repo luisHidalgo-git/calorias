@@ -2,41 +2,48 @@ import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import '../../models/fitness_data.dart';
 import '../../models/daily_calories.dart';
-import '../../widgets/progress_ring.dart';
-import '../../widgets/center_content.dart';
-import '../../widgets/time_display.dart';
-import '../../widgets/notification_icon.dart';
-import '../../widgets/watch_button.dart';
-import '../../widgets/adaptive_text.dart';
-import '../../widgets/branded_logo.dart';
-import '../../utils/color_utils.dart';
+import '../../utils/device_utils.dart';
 import '../../utils/screen_utils.dart';
+import '../../utils/color_utils.dart';
+import '../progress_ring.dart';
+import '../time_display.dart';
+import '../notification_icon.dart';
+import '../watch_button.dart';
+import '../adaptive_text.dart';
+import '../branded_logo.dart';
+import 'watch_face_animations.dart';
+import 'interactive_center_content.dart';
 
 class WearableLayout extends StatelessWidget {
+  final Size screenSize;
+  final LayoutConfig layoutConfig;
   final FitnessData fitnessData;
   final List<CalorieEntry> notifications;
-  final Animation<double> pulseAnimation;
-  final Animation<double> goalReachedAnimation;
-  final VoidCallback onNavigateToTable;
-  final VoidCallback onShowNotifications;
+  final WatchFaceAnimations animations;
   final Color accentColor;
   final Color progressColor;
+  final VoidCallback onNavigateToTable;
+  final VoidCallback onShowNotifications;
+  final VoidCallback onShowCaloriesAdjustment;
+  final VoidCallback onShowHeartRateAdjustment;
 
   const WearableLayout({
     super.key,
+    required this.screenSize,
+    required this.layoutConfig,
     required this.fitnessData,
     required this.notifications,
-    required this.pulseAnimation,
-    required this.goalReachedAnimation,
-    required this.onNavigateToTable,
-    required this.onShowNotifications,
+    required this.animations,
     required this.accentColor,
     required this.progressColor,
+    required this.onNavigateToTable,
+    required this.onShowNotifications,
+    required this.onShowCaloriesAdjustment,
+    required this.onShowHeartRateAdjustment,
   });
 
   @override
   Widget build(BuildContext context) {
-    final screenSize = MediaQuery.of(context).size;
     final isRound = ScreenUtils.isRoundScreen(screenSize);
     final watchSize = isRound
         ? math.min(screenSize.width, screenSize.height) * 0.68
@@ -109,19 +116,22 @@ class WearableLayout extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               if (isRound) SizedBox(height: screenSize.height * 0.05),
+
               TimeDisplay(watchSize: watchSize, accentColor: accentColor),
               _buildMotivationalText(watchSize, accentColor, isRound),
+
               Flexible(
                 flex: 3,
                 child: Center(
                   child: AnimatedBuilder(
                     animation: Listenable.merge([
-                      pulseAnimation,
-                      goalReachedAnimation,
+                      animations.pulseAnimation,
+                      animations.goalReachedAnimation,
                     ]),
                     builder: (context, child) {
                       return Transform.scale(
-                        scale: pulseAnimation.value * goalReachedAnimation.value,
+                        scale: animations.pulseAnimation.value * 
+                               animations.goalReachedAnimation.value,
                         child: SizedBox(
                           width: watchSize,
                           height: watchSize,
@@ -133,9 +143,13 @@ class WearableLayout extends StatelessWidget {
                                 strokeWidth: isRound ? 13 : 14,
                                 radius: watchSize * 0.4,
                               ),
-                              CenterContent(
+                              InteractiveCenterContent(
                                 fitnessData: fitnessData,
                                 watchSize: watchSize,
+                                isRound: isRound,
+                                accentColor: accentColor,
+                                onShowCaloriesAdjustment: onShowCaloriesAdjustment,
+                                onShowHeartRateAdjustment: onShowHeartRateAdjustment,
                               ),
                             ],
                           ),
@@ -145,6 +159,7 @@ class WearableLayout extends StatelessWidget {
                   ),
                 ),
               ),
+
               Column(
                 children: [
                   _buildProgressIndicator(watchSize, progressColor, isRound),
@@ -156,6 +171,7 @@ class WearableLayout extends StatelessWidget {
                   _buildActivityDescription(watchSize, accentColor, isRound),
                 ],
               ),
+
               if (isRound) SizedBox(height: screenSize.height * 0.015),
             ],
           ),
