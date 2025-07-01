@@ -177,3 +177,61 @@ class MqttCommunicationMessage {
     return MqttCommunicationMessage.fromJson(jsonDecode(jsonString));
   }
 }
+
+// Nueva clase para mensajes de actividad
+class ActivityMessage {
+  final String messageId;
+  final String senderDeviceId;
+  final String senderDeviceName;
+  final DeviceConnectionType senderDeviceType;
+  final String activityDescription;
+  final double calories;
+  final int heartRate;
+  final DateTime timestamp;
+
+  ActivityMessage({
+    required this.messageId,
+    required this.senderDeviceId,
+    required this.senderDeviceName,
+    required this.senderDeviceType,
+    required this.activityDescription,
+    required this.calories,
+    required this.heartRate,
+    required this.timestamp,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'messageId': messageId,
+      'senderDeviceId': senderDeviceId,
+      'senderDeviceName': senderDeviceName,
+      'senderDeviceType': senderDeviceType.name,
+      'activityDescription': activityDescription,
+      'calories': calories,
+      'heartRate': heartRate,
+      'timestamp': timestamp.toIso8601String(),
+    };
+  }
+
+  factory ActivityMessage.fromJson(Map<String, dynamic> json) {
+    return ActivityMessage(
+      messageId: json['messageId'] ?? '',
+      senderDeviceId: json['senderDeviceId'] ?? '',
+      senderDeviceName: json['senderDeviceName'] ?? '',
+      senderDeviceType: DeviceConnectionType.values.firstWhere(
+        (e) => e.name == json['senderDeviceType'],
+        orElse: () => DeviceConnectionType.unknown,
+      ),
+      activityDescription: json['activityDescription'] ?? '',
+      calories: json['calories']?.toDouble() ?? 0.0,
+      heartRate: json['heartRate']?.toInt() ?? 0,
+      timestamp: DateTime.parse(json['timestamp']),
+    );
+  }
+
+  String toJsonString() => jsonEncode(toJson());
+
+  static ActivityMessage fromJsonString(String jsonString) {
+    return ActivityMessage.fromJson(jsonDecode(jsonString));
+  }
+}

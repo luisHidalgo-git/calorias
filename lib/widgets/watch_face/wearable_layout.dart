@@ -27,6 +27,7 @@ class WearableLayout extends StatelessWidget {
   final VoidCallback onShowNotifications;
   final VoidCallback onShowCaloriesAdjustment;
   final VoidCallback onShowHeartRateAdjustment;
+  final VoidCallback? onSendActivityMessage; // Nuevo callback
 
   const WearableLayout({
     super.key,
@@ -41,6 +42,7 @@ class WearableLayout extends StatelessWidget {
     required this.onShowNotifications,
     required this.onShowCaloriesAdjustment,
     required this.onShowHeartRateAdjustment,
+    this.onSendActivityMessage, // Nuevo parámetro opcional
   });
 
   @override
@@ -252,21 +254,48 @@ class WearableLayout extends StatelessWidget {
   Widget _buildActivityDescription(double watchSize, Color accentColor, bool isRound) {
     final description = ColorUtils.getActivityDescription(fitnessData.calories);
 
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: watchSize * 0.03,
-        vertical: watchSize * (isRound ? 0.009 : 0.01),
-      ),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(watchSize * 0.015),
-        color: accentColor.withOpacity(0.12),
-        border: Border.all(color: accentColor.withOpacity(0.3), width: 1),
-      ),
-      child: AdaptiveText(
-        description,
-        fontSize: watchSize * (isRound ? 0.042 : 0.045),
-        color: accentColor.withOpacity(0.9),
-        fontWeight: FontWeight.w500,
+    return GestureDetector(
+      onTap: onSendActivityMessage, // Hacer clickeable
+      child: Container(
+        padding: EdgeInsets.symmetric(
+          horizontal: watchSize * 0.03,
+          vertical: watchSize * (isRound ? 0.009 : 0.01),
+        ),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(watchSize * 0.015),
+          color: accentColor.withOpacity(0.12),
+          border: Border.all(color: accentColor.withOpacity(0.3), width: 1),
+          // Agregar efecto visual para indicar que es clickeable
+          boxShadow: onSendActivityMessage != null ? [
+            BoxShadow(
+              color: accentColor.withOpacity(0.2),
+              blurRadius: 4,
+              spreadRadius: 1,
+            ),
+          ] : null,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (onSendActivityMessage != null) ...[
+              Icon(
+                Icons.send,
+                color: accentColor.withOpacity(0.7),
+                size: watchSize * (isRound ? 0.035 : 0.038),
+              ),
+              SizedBox(width: watchSize * 0.01),
+            ],
+            Flexible(
+              child: AdaptiveText(
+                description,
+                fontSize: watchSize * (isRound ? 0.042 : 0.045),
+                color: accentColor.withOpacity(0.9),
+                fontWeight: FontWeight.w500,
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

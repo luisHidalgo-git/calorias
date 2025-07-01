@@ -21,6 +21,7 @@ class PhoneLayout extends StatelessWidget {
   final VoidCallback onShowNotifications;
   final VoidCallback onShowCaloriesAdjustment;
   final VoidCallback onShowHeartRateAdjustment;
+  final VoidCallback? onSendActivityMessage; // Nuevo callback
 
   const PhoneLayout({
     super.key,
@@ -36,6 +37,7 @@ class PhoneLayout extends StatelessWidget {
     required this.onShowNotifications,
     required this.onShowCaloriesAdjustment,
     required this.onShowHeartRateAdjustment,
+    this.onSendActivityMessage, // Nuevo parámetro opcional
   });
 
   @override
@@ -344,20 +346,46 @@ class PhoneLayout extends StatelessWidget {
           ],
         ),
         SizedBox(height: 16),
-        Container(
-          width: double.infinity,
-          padding: EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-            color: accentColor.withOpacity(0.1),
-            border: Border.all(color: accentColor.withOpacity(0.3)),
-          ),
-          child: Center(
-            child: AdaptiveText(
-              ColorUtils.getActivityDescription(fitnessData.calories),
-              fontSize: screenSize.width * 0.05,
-              color: accentColor.withOpacity(0.9),
-              fontWeight: FontWeight.w500,
+        // Hacer clickeable la descripción de actividad
+        GestureDetector(
+          onTap: onSendActivityMessage,
+          child: Container(
+            width: double.infinity,
+            padding: EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14),
+              color: accentColor.withOpacity(0.1),
+              border: Border.all(color: accentColor.withOpacity(0.3)),
+              // Agregar efecto visual para indicar que es clickeable
+              boxShadow: onSendActivityMessage != null ? [
+                BoxShadow(
+                  color: accentColor.withOpacity(0.2),
+                  blurRadius: 8,
+                  spreadRadius: 1,
+                ),
+              ] : null,
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (onSendActivityMessage != null) ...[
+                  Icon(
+                    Icons.send,
+                    color: accentColor.withOpacity(0.7),
+                    size: screenSize.width * 0.05,
+                  ),
+                  SizedBox(width: 8),
+                ],
+                Flexible(
+                  child: AdaptiveText(
+                    ColorUtils.getActivityDescription(fitnessData.calories),
+                    fontSize: screenSize.width * 0.05,
+                    color: accentColor.withOpacity(0.9),
+                    fontWeight: FontWeight.w500,
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ],
             ),
           ),
         ),
