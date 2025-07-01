@@ -250,3 +250,4 @@ Para reportar bugs o solicitar funcionalidades, crear un issue en el repositorio
 ---
 
 **Nota**: Esta aplicación está optimizada para smartwatches con Wear OS y dispositivos Android/iOS. Para mejor experiencia, usar en dispositivos con pantallas pequeñas (< 400px).
+.
