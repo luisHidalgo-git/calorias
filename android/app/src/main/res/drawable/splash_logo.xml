@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+    
+    <!-- Círculo exterior -->
+    <path
+        android:pathData="M60,10 A50,50 0 1,1 60,110 A50,50 0 1,1 60,10 Z"
+        android:strokeColor="#3B82F6"
+        android:strokeWidth="3"
+        android:fillColor="#1F2937" />
+    
+    <!-- Anillo de progreso -->
+    <path
+        android:pathData="M60,20 A40,40 0 1,1 59.9,20"
+        android:strokeColor="#60A5FA"
+        android:strokeWidth="6"
+        android:fillColor="@android:color/transparent"
+        android:strokeLineCap="round" />
+    
+    <!-- Círculo central -->
+    <path
+        android:pathData="M60,35 A25,25 0 1,1 60,85 A25,25 0 1,1 60,35 Z"
+        android:fillColor="#374151"
+        android:strokeColor="#3B82F6"
+        android:strokeWidth="2" />
+    
+    <!-- Logo personalizado - Letra C estilizada -->
+    <path
+        android:pathData="M75,50 A15,15 0 1,0 75,70 M75,55 A10,10 0 1,0 75,65"
+        android:strokeColor="#FF6B35"
+        android:strokeWidth="4"
+        android:fillColor="@android:color/transparent"
+        android:strokeLineCap="round" />
+    
+    <!-- Logo personalizado - Letra W estilizada -->
+    <path
+        android:pathData="M45,50 L48,70 L52,55 L56,70 L59,50"
+        android:strokeColor="#FF6B35"
+        android:strokeWidth="3"
+        android:fillColor="@android:color/transparent"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    
+    <!-- Puntos decorativos usando path -->
+    <path
+        android:pathData="M60,13 A2,2 0 1,1 60,17 A2,2 0 1,1 60,13 Z"
+        android:fillColor="#3B82F6" />
+    
+    <path
+        android:pathData="M60,103 A2,2 0 1,1 60,107 A2,2 0 1,1 60,103 Z"
+        android:fillColor="#3B82F6" />
+    
+    <path
+        android:pathData="M13,60 A2,2 0 1,1 17,60 A2,2 0 1,1 13,60 Z"
+        android:fillColor="#3B82F6" />
+    
+    <path
+        android:pathData="M103,60 A2,2 0 1,1 107,60 A2,2 0 1,1 103,60 Z"
+        android:fillColor="#3B82F6" />
+</vector>
