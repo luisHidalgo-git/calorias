@@ -19,7 +19,8 @@ class WatchFaceLayout extends StatelessWidget {
   final VoidCallback onShowNotifications;
   final VoidCallback onShowCaloriesAdjustment;
   final VoidCallback onShowHeartRateAdjustment;
-  final VoidCallback? onSendActivityMessage; // Nuevo callback
+  final VoidCallback? onSendActivityMessage;
+  final VoidCallback? onRequestCaloriesData; // Nuevo callback
 
   const WatchFaceLayout({
     super.key,
@@ -35,7 +36,8 @@ class WatchFaceLayout extends StatelessWidget {
     required this.onShowNotifications,
     required this.onShowCaloriesAdjustment,
     required this.onShowHeartRateAdjustment,
-    this.onSendActivityMessage, // Nuevo parámetro opcional
+    this.onSendActivityMessage,
+    this.onRequestCaloriesData, // Nuevo parámetro opcional
   });
 
   @override
@@ -57,7 +59,8 @@ class WatchFaceLayout extends StatelessWidget {
         onShowNotifications: onShowNotifications,
         onShowCaloriesAdjustment: onShowCaloriesAdjustment,
         onShowHeartRateAdjustment: onShowHeartRateAdjustment,
-        onSendActivityMessage: onSendActivityMessage, // Pasar el callback
+        onSendActivityMessage: onSendActivityMessage,
+        onRequestCaloriesData: onRequestCaloriesData, // Pasar el callback
       );
     } else {
       return PhoneLayout(
@@ -73,7 +76,8 @@ class WatchFaceLayout extends StatelessWidget {
         onShowNotifications: onShowNotifications,
         onShowCaloriesAdjustment: onShowCaloriesAdjustment,
         onShowHeartRateAdjustment: onShowHeartRateAdjustment,
-        onSendActivityMessage: onSendActivityMessage, // Pasar el callback
+        onSendActivityMessage: onSendActivityMessage,
+        onRequestCaloriesData: onRequestCaloriesData, // Pasar el callback
       );
     }
   }

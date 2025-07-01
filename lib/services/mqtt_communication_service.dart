@@ -15,14 +15,19 @@ class MqttCommunicationService {
   MqttCommunicationService._internal();
 
   // Configuración MQTT - Usando broker público confiable
-  static const String _mqttHost = 'broker.hivemq.com';
+  static const String _mqttHost = 'test.mosquitto.org';
   static const int _mqttPort = 1883;
+  
+  // Topics específicos para intercambio bidireccional de calorías
   static const String _baseTopic = 'smartwatch/calories/v1';
+  static const String _caloriesDataTopic = '$_baseTopic/calories/data';
+  static const String _caloriesRequestTopic = '$_baseTopic/calories/request';
+  static const String _caloriesResponseTopic = '$_baseTopic/calories/response';
   static const String _discoveryTopic = '$_baseTopic/discovery';
-  static const String _dataTopic = '$_baseTopic/data';
   static const String _statusTopic = '$_baseTopic/status';
   static const String _heartbeatTopic = '$_baseTopic/heartbeat';
   static const String _activityMessageTopic = '$_baseTopic/activity';
+  static const String _syncTopic = '$_baseTopic/sync';
 
   MqttServerClient? _client;
   String? _deviceId;
@@ -251,10 +256,13 @@ class MqttCommunicationService {
     try {
       // Suscribirse a todos los topics relevantes
       _client!.subscribe(_discoveryTopic, MqttQos.atLeastOnce);
-      _client!.subscribe('$_dataTopic/+', MqttQos.atLeastOnce);
+      _client!.subscribe('$_caloriesDataTopic/+', MqttQos.atLeastOnce);
+      _client!.subscribe('$_caloriesRequestTopic/+', MqttQos.atLeastOnce);
+      _client!.subscribe('$_caloriesResponseTopic/+', MqttQos.atLeastOnce);
       _client!.subscribe('$_statusTopic/+', MqttQos.atLeastOnce);
       _client!.subscribe('$_heartbeatTopic/+', MqttQos.atLeastOnce);
       _client!.subscribe(_activityMessageTopic, MqttQos.atLeastOnce);
+      _client!.subscribe('$_syncTopic/+', MqttQos.atLeastOnce);
 
       // Configurar listener para mensajes entrantes
       _client!.updates!.listen((List<MqttReceivedMessage<MqttMessage>> messages) {
@@ -284,18 +292,23 @@ class MqttCommunicationService {
       }
 
       print('📨 Received message on topic: $topic');
-      print('📨 Payload: $payload');
 
       if (topic == _discoveryTopic) {
         _handleDiscoveryMessage(payload);
-      } else if (topic.startsWith(_dataTopic)) {
-        _handleDataMessage(topic, payload);
+      } else if (topic.startsWith(_caloriesDataTopic)) {
+        _handleCaloriesDataMessage(topic, payload);
+      } else if (topic.startsWith(_caloriesRequestTopic)) {
+        _handleCaloriesRequestMessage(topic, payload);
+      } else if (topic.startsWith(_caloriesResponseTopic)) {
+        _handleCaloriesResponseMessage(topic, payload);
       } else if (topic.startsWith(_statusTopic)) {
         _handleStatusMessage(topic, payload);
       } else if (topic.startsWith(_heartbeatTopic)) {
         _handleHeartbeatMessage(topic, payload);
       } else if (topic == _activityMessageTopic) {
         _handleActivityMessage(payload);
+      } else if (topic.startsWith(_syncTopic)) {
+        _handleSyncMessage(topic, payload);
       }
     } catch (e) {
       print('❌ Error handling incoming message: $e');
@@ -334,28 +347,83 @@ class MqttCommunicationService {
     }
   }
 
-  void _handleDataMessage(String topic, String payload) {
+  void _handleCaloriesDataMessage(String topic, String payload) {
     try {
-      final message = MqttCommunicationMessage.fromJsonString(payload);
+      final data = jsonDecode(payload);
+      final deviceId = data['deviceId'];
 
-      if (message.deviceId == _deviceId)
-        return; // Ignorar nuestros propios mensajes
+      if (deviceId == _deviceId) return; // Ignorar nuestros propios mensajes
 
-      print('📊 Data message from: ${message.deviceId}');
+      print('🔥 Calories data from: $deviceId');
 
-      if (_discoveredDevices.containsKey(message.deviceId)) {
-        _discoveredDevices[message.deviceId] =
-            _discoveredDevices[message.deviceId]!.copyWith(
-              lastSeen: DateTime.now(),
-              lastData: message.data,
-            );
+      final message = MqttCommunicationMessage(
+        type: 'calories_data',
+        deviceId: deviceId,
+        deviceName: data['deviceName'] ?? 'Dispositivo desconocido',
+        deviceType: DeviceConnectionType.values.firstWhere(
+          (e) => e.name == data['deviceType'],
+          orElse: () => DeviceConnectionType.unknown,
+        ),
+        timestamp: DateTime.parse(data['timestamp']),
+        data: data,
+      );
+
+      if (_discoveredDevices.containsKey(deviceId)) {
+        _discoveredDevices[deviceId] = _discoveredDevices[deviceId]!.copyWith(
+          lastSeen: DateTime.now(),
+          lastData: data,
+        );
         _devicesController.add(discoveredDevices);
       }
 
-      _connectedDevices[message.deviceId] = DateTime.now();
+      _connectedDevices[deviceId] = DateTime.now();
       _messageController.add(message);
     } catch (e) {
-      print('❌ Error handling data message: $e');
+      print('❌ Error handling calories data message: $e');
+    }
+  }
+
+  void _handleCaloriesRequestMessage(String topic, String payload) {
+    try {
+      final data = jsonDecode(payload);
+      final deviceId = data['deviceId'];
+
+      if (deviceId == _deviceId) return; // Ignorar nuestros propios mensajes
+
+      print('📥 Calories request from: $deviceId');
+
+      // Responder con nuestros datos actuales de calorías
+      // Esto se implementaría en el servicio que maneja los datos de fitness
+      _sendCaloriesResponse(deviceId, data['requestId']);
+    } catch (e) {
+      print('❌ Error handling calories request message: $e');
+    }
+  }
+
+  void _handleCaloriesResponseMessage(String topic, String payload) {
+    try {
+      final data = jsonDecode(payload);
+      final deviceId = data['deviceId'];
+
+      if (deviceId == _deviceId) return; // Ignorar nuestros propios mensajes
+
+      print('📤 Calories response from: $deviceId');
+
+      final message = MqttCommunicationMessage(
+        type: 'calories_response',
+        deviceId: deviceId,
+        deviceName: data['deviceName'] ?? 'Dispositivo desconocido',
+        deviceType: DeviceConnectionType.values.firstWhere(
+          (e) => e.name == data['deviceType'],
+          orElse: () => DeviceConnectionType.unknown,
+        ),
+        timestamp: DateTime.parse(data['timestamp']),
+        data: data,
+      );
+
+      _messageController.add(message);
+    } catch (e) {
+      print('❌ Error handling calories response message: $e');
     }
   }
 
@@ -450,6 +518,33 @@ class MqttCommunicationService {
     }
   }
 
+  void _handleSyncMessage(String topic, String payload) {
+    try {
+      final data = jsonDecode(payload);
+      final deviceId = data['deviceId'];
+
+      if (deviceId == _deviceId) return; // Ignorar nuestros propios mensajes
+
+      print('🔄 Sync message from: $deviceId');
+
+      final message = MqttCommunicationMessage(
+        type: 'sync',
+        deviceId: deviceId,
+        deviceName: data['deviceName'] ?? 'Dispositivo desconocido',
+        deviceType: DeviceConnectionType.values.firstWhere(
+          (e) => e.name == data['deviceType'],
+          orElse: () => DeviceConnectionType.unknown,
+        ),
+        timestamp: DateTime.parse(data['timestamp']),
+        data: data,
+      );
+
+      _messageController.add(message);
+    } catch (e) {
+      print('❌ Error handling sync message: $e');
+    }
+  }
+
   bool _shouldRespondToDiscovery(DeviceConnectionType discoveredDeviceType) {
     return (_deviceType == DeviceConnectionType.smartwatch &&
             discoveredDeviceType == DeviceConnectionType.phone) ||
@@ -486,23 +581,87 @@ class MqttCommunicationService {
     print('📤 Discovery message sent');
   }
 
-  Future<void> sendData(Map<String, dynamic> data) async {
+  // Método específico para enviar datos de calorías
+  Future<void> sendCaloriesData({
+    required double calories,
+    required int heartRate,
+    required double dailyGoal,
+    Map<String, dynamic>? additionalData,
+  }) async {
     if (_client?.connectionStatus?.state != MqttConnectionState.connected) {
-      print('❌ Cannot send data: MQTT not connected');
+      print('❌ Cannot send calories data: MQTT not connected');
       return;
     }
 
-    final message = MqttCommunicationMessage(
-      type: 'data',
-      deviceId: _deviceId!,
-      deviceName: _deviceName!,
-      deviceType: _deviceType!,
-      timestamp: DateTime.now(),
-      data: data,
-    );
+    final data = {
+      'deviceId': _deviceId,
+      'deviceName': _deviceName,
+      'deviceType': _deviceType!.name,
+      'timestamp': DateTime.now().toIso8601String(),
+      'calories': calories,
+      'heartRate': heartRate,
+      'dailyGoal': dailyGoal,
+      'progressPercentage': (calories / dailyGoal * 100).clamp(0, 100),
+      ...?additionalData,
+    };
 
-    await _publishMessage('$_dataTopic/$_deviceId', message.toJsonString());
-    print('📤 Data sent: ${data.keys.join(', ')}');
+    await _publishMessage('$_caloriesDataTopic/$_deviceId', jsonEncode(data));
+    print('📤 Calories data sent: ${calories.toStringAsFixed(0)} cal, $heartRate BPM');
+  }
+
+  // Método para solicitar datos de calorías de otros dispositivos
+  Future<void> requestCaloriesData(String targetDeviceId) async {
+    if (_client?.connectionStatus?.state != MqttConnectionState.connected) {
+      print('❌ Cannot request calories data: MQTT not connected');
+      return;
+    }
+
+    final uuid = Uuid();
+    final requestId = uuid.v4();
+
+    final data = {
+      'requestId': requestId,
+      'deviceId': _deviceId,
+      'deviceName': _deviceName,
+      'deviceType': _deviceType!.name,
+      'timestamp': DateTime.now().toIso8601String(),
+      'targetDeviceId': targetDeviceId,
+    };
+
+    await _publishMessage('$_caloriesRequestTopic/$targetDeviceId', jsonEncode(data));
+    print('📤 Calories data request sent to: $targetDeviceId');
+  }
+
+  // Método para responder a solicitudes de datos de calorías
+  Future<void> _sendCaloriesResponse(String targetDeviceId, String requestId) async {
+    // Este método sería llamado por el servicio de fitness con los datos actuales
+    // Por ahora, enviaremos datos de ejemplo
+    final data = {
+      'requestId': requestId,
+      'deviceId': _deviceId,
+      'deviceName': _deviceName,
+      'deviceType': _deviceType!.name,
+      'timestamp': DateTime.now().toIso8601String(),
+      'calories': 150.0, // Esto vendría del FitnessData actual
+      'heartRate': 75,   // Esto vendría del FitnessData actual
+      'dailyGoal': 300.0,
+    };
+
+    await _publishMessage('$_caloriesResponseTopic/$targetDeviceId', jsonEncode(data));
+    print('📤 Calories data response sent to: $targetDeviceId');
+  }
+
+  Future<void> sendData(Map<String, dynamic> data) async {
+    // Usar el método específico para datos de calorías
+    await sendCaloriesData(
+      calories: data['calories']?.toDouble() ?? 0.0,
+      heartRate: data['heartRate']?.toInt() ?? 72,
+      dailyGoal: data['dailyCaloriesGoal']?.toDouble() ?? 300.0,
+      additionalData: {
+        'maxHeartRate': data['maxHeartRate'],
+        'type': data['type'] ?? 'calorie_sync',
+      },
+    );
   }
 
   Future<void> sendActivityMessage({
@@ -534,6 +693,26 @@ class MqttCommunicationService {
     print(
       '📤 Activity message sent: $activityDescription (${calories.toStringAsFixed(0)} cal, ${heartRate} BPM)',
     );
+  }
+
+  // Método para sincronizar configuraciones
+  Future<void> sendSyncMessage(Map<String, dynamic> syncData) async {
+    if (_client?.connectionStatus?.state != MqttConnectionState.connected) {
+      print('❌ Cannot send sync message: MQTT not connected');
+      return;
+    }
+
+    final data = {
+      'deviceId': _deviceId,
+      'deviceName': _deviceName,
+      'deviceType': _deviceType!.name,
+      'timestamp': DateTime.now().toIso8601String(),
+      'syncType': 'settings',
+      'data': syncData,
+    };
+
+    await _publishMessage('$_syncTopic/$_deviceId', jsonEncode(data));
+    print('📤 Sync message sent');
   }
 
   Future<void> _publishStatus(String status) async {

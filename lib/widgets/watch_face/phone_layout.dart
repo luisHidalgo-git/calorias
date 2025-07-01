@@ -21,7 +21,8 @@ class PhoneLayout extends StatelessWidget {
   final VoidCallback onShowNotifications;
   final VoidCallback onShowCaloriesAdjustment;
   final VoidCallback onShowHeartRateAdjustment;
-  final VoidCallback? onSendActivityMessage; // Nuevo callback
+  final VoidCallback? onSendActivityMessage;
+  final VoidCallback? onRequestCaloriesData; // Nuevo callback
 
   const PhoneLayout({
     super.key,
@@ -37,7 +38,8 @@ class PhoneLayout extends StatelessWidget {
     required this.onShowNotifications,
     required this.onShowCaloriesAdjustment,
     required this.onShowHeartRateAdjustment,
-    this.onSendActivityMessage, // Nuevo parámetro opcional
+    this.onSendActivityMessage,
+    this.onRequestCaloriesData, // Nuevo parámetro opcional
   });
 
   @override
@@ -89,6 +91,26 @@ class PhoneLayout extends StatelessWidget {
         ),
         Row(
           children: [
+            // Botón para solicitar datos de otros dispositivos
+            if (onRequestCaloriesData != null) ...[
+              GestureDetector(
+                onTap: onRequestCaloriesData,
+                child: Container(
+                  padding: EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                  ),
+                  child: Icon(
+                    Icons.sync,
+                    color: Colors.blue.shade300,
+                    size: 20,
+                  ),
+                ),
+              ),
+              SizedBox(width: 6),
+            ],
             GestureDetector(
               onTap: onNavigateToSettings,
               child: Container(
@@ -347,36 +369,59 @@ class PhoneLayout extends StatelessWidget {
         ),
         SizedBox(height: 16),
         // Hacer clickeable la descripción de actividad
-        GestureDetector(
-          onTap: onSendActivityMessage,
-          child: Container(
-            width: double.infinity,
-            padding: EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(14),
-              color: accentColor.withOpacity(0.1),
-              border: Border.all(color: accentColor.withOpacity(0.3)),
-              // Agregar efecto visual para indicar que es clickeable
-              boxShadow: onSendActivityMessage != null ? [
-                BoxShadow(
-                  color: accentColor.withOpacity(0.2),
-                  blurRadius: 8,
-                  spreadRadius: 1,
-                ),
-              ] : null,
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (onSendActivityMessage != null) ...[
-                  Icon(
-                    Icons.send,
-                    color: accentColor.withOpacity(0.7),
-                    size: screenSize.width * 0.05,
+        Row(
+          children: [
+            // Botón para enviar mensaje de actividad
+            if (onSendActivityMessage != null) ...[
+              Expanded(
+                child: GestureDetector(
+                  onTap: onSendActivityMessage,
+                  child: Container(
+                    padding: EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(14),
+                      color: accentColor.withOpacity(0.1),
+                      border: Border.all(color: accentColor.withOpacity(0.3)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: accentColor.withOpacity(0.2),
+                          blurRadius: 8,
+                          spreadRadius: 1,
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.send,
+                          color: accentColor.withOpacity(0.7),
+                          size: screenSize.width * 0.05,
+                        ),
+                        SizedBox(width: 8),
+                        Flexible(
+                          child: AdaptiveText(
+                            'Enviar: ${ColorUtils.getActivityDescription(fitnessData.calories)}',
+                            fontSize: screenSize.width * 0.04,
+                            color: accentColor.withOpacity(0.9),
+                            fontWeight: FontWeight.w500,
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  SizedBox(width: 8),
-                ],
-                Flexible(
+                ),
+              ),
+            ] else ...[
+              Expanded(
+                child: Container(
+                  padding: EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(14),
+                    color: accentColor.withOpacity(0.1),
+                    border: Border.all(color: accentColor.withOpacity(0.3)),
+                  ),
                   child: AdaptiveText(
                     ColorUtils.getActivityDescription(fitnessData.calories),
                     fontSize: screenSize.width * 0.05,
@@ -385,9 +430,9 @@ class PhoneLayout extends StatelessWidget {
                     textAlign: TextAlign.center,
                   ),
                 ),
-              ],
-            ),
-          ),
+              ),
+            ],
+          ],
         ),
       ],
     );

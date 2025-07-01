@@ -110,6 +110,9 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
                 duration: Duration(seconds: 2),
               ),
             );
+            
+            // Enviar datos iniciales cuando se conecte
+            _sendDataToMqtt();
           } else if (status == ConnectionStatus.error) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -155,13 +158,13 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
     try {
       print('📨 Handling MQTT message: ${message.type}');
 
-      // Procesar mensajes de sincronización de datos
-      if (message.type == 'calorie_sync' || message.type == 'data') {
+      // Procesar mensajes de datos de calorías
+      if (message.type == 'calories_data') {
         final calories = message.data['calories']?.toDouble() ?? 0.0;
         final heartRate = message.data['heartRate']?.toInt() ?? 72;
 
         print(
-          '📊 Syncing data: ${calories.toStringAsFixed(0)} cal, $heartRate BPM',
+          '📊 Syncing calories data: ${calories.toStringAsFixed(0)} cal, $heartRate BPM',
         );
 
         setState(() {
@@ -170,19 +173,52 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
         });
 
         _calorieService.updateCurrentCalories(calories, fitnessData);
-      } else if (message.type == 'settings_sync') {
-        // Sincronizar configuraciones
-        final newGoal = message.data['dailyCaloriesGoal']?.toDouble();
-        final newMaxHR = message.data['maxHeartRate']?.toInt();
+      } 
+      // Procesar respuestas a solicitudes de datos
+      else if (message.type == 'calories_response') {
+        final calories = message.data['calories']?.toDouble() ?? 0.0;
+        final heartRate = message.data['heartRate']?.toInt() ?? 72;
 
-        if (newGoal != null) {
-          fitnessData.updateCaloriesGoal(newGoal);
-        }
-        if (newMaxHR != null) {
-          fitnessData.updateMaxHeartRate(newMaxHR);
-        }
+        print(
+          '📥 Received calories response: ${calories.toStringAsFixed(0)} cal, $heartRate BPM',
+        );
 
-        setState(() {});
+        // Mostrar notificación de datos recibidos
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  Icon(Icons.sync, color: Colors.blue),
+                  SizedBox(width: 8),
+                  Text('Datos sincronizados: ${calories.toStringAsFixed(0)} cal'),
+                ],
+              ),
+              backgroundColor: Colors.blue.shade700,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+      // Procesar mensajes de sincronización
+      else if (message.type == 'sync') {
+        final syncData = message.data['data'];
+        if (syncData != null) {
+          // Sincronizar configuraciones
+          final newGoal = syncData['dailyCaloriesGoal']?.toDouble();
+          final newMaxHR = syncData['maxHeartRate']?.toInt();
+
+          if (newGoal != null) {
+            fitnessData.updateCaloriesGoal(newGoal);
+          }
+          if (newMaxHR != null) {
+            fitnessData.updateMaxHeartRate(newMaxHR);
+          }
+
+          setState(() {});
+          
+          print('🔄 Settings synchronized from ${message.deviceName}');
+        }
       }
     } catch (e) {
       print('❌ Error handling MQTT message: $e');
@@ -266,6 +302,69 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
     }
   }
 
+  Future<void> _requestCaloriesFromOtherDevices() async {
+    if (!_mqttService.isConnected) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.wifi_off, color: Colors.red),
+              SizedBox(width: 8),
+              Text('No hay conexión MQTT disponible'),
+            ],
+          ),
+          backgroundColor: Colors.red.shade700,
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
+    try {
+      final connectedDevices = _mqttService.connectedDevices;
+      
+      if (connectedDevices.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.devices_other, color: Colors.orange),
+                SizedBox(width: 8),
+                Text('No hay dispositivos conectados'),
+              ],
+            ),
+            backgroundColor: Colors.orange.shade700,
+            duration: Duration(seconds: 2),
+          ),
+        );
+        return;
+      }
+
+      // Solicitar datos de todos los dispositivos conectados
+      for (final device in connectedDevices) {
+        await _mqttService.requestCaloriesData(device.deviceId);
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.sync, color: Colors.blue),
+                SizedBox(width: 8),
+                Text('Solicitando datos de ${connectedDevices.length} dispositivos'),
+              ],
+            ),
+            backgroundColor: Colors.blue.shade700,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      print('❌ Error requesting calories data: $e');
+    }
+  }
+
   Future<void> _loadInitialSettings() async {
     await _settingsService.loadSettings();
     final settings = _settingsService.currentSettings;
@@ -311,6 +410,9 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
 
     // Enviar cambios por MQTT
     _sendDataToMqtt();
+    
+    // Sincronizar configuraciones con otros dispositivos
+    _sendSyncMessage(config);
 
     setState(() {});
   }
@@ -350,14 +452,23 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
 
   void _sendDataToMqtt() {
     if (_mqttService.isConnected) {
-      _mqttService.sendData({
-        'type': 'calorie_sync',
-        'calories': fitnessData.calories,
-        'heartRate': fitnessData.heartRate,
-        'dailyCaloriesGoal': fitnessData.dailyCaloriesGoal,
-        'maxHeartRate': fitnessData.maxHeartRate,
-        'timestamp': DateTime.now().toIso8601String(),
-      });
+      _mqttService.sendCaloriesData(
+        calories: fitnessData.calories,
+        heartRate: fitnessData.heartRate,
+        dailyGoal: fitnessData.dailyCaloriesGoal,
+        additionalData: {
+          'maxHeartRate': fitnessData.maxHeartRate,
+          'progressPercentage': fitnessData.progressPercentage * 100,
+          'intensityLevel': fitnessData.intensityLevel,
+          'goalReached': fitnessData.goalReached,
+        },
+      );
+    }
+  }
+
+  void _sendSyncMessage(Map<String, dynamic> config) {
+    if (_mqttService.isConnected) {
+      _mqttService.sendSyncMessage(config);
     }
   }
 
@@ -473,6 +584,9 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
                     ),
                 onSendActivityMessage: _mqttService.isConnected
                     ? _sendActivityMessage
+                    : null,
+                onRequestCaloriesData: _mqttService.isConnected
+                    ? _requestCaloriesFromOtherDevices
                     : null,
               ),
             );

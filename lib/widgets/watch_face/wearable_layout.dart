@@ -27,7 +27,8 @@ class WearableLayout extends StatelessWidget {
   final VoidCallback onShowNotifications;
   final VoidCallback onShowCaloriesAdjustment;
   final VoidCallback onShowHeartRateAdjustment;
-  final VoidCallback? onSendActivityMessage; // Nuevo callback
+  final VoidCallback? onSendActivityMessage;
+  final VoidCallback? onRequestCaloriesData; // Nuevo callback
 
   const WearableLayout({
     super.key,
@@ -42,7 +43,8 @@ class WearableLayout extends StatelessWidget {
     required this.onShowNotifications,
     required this.onShowCaloriesAdjustment,
     required this.onShowHeartRateAdjustment,
-    this.onSendActivityMessage, // Nuevo parámetro opcional
+    this.onSendActivityMessage,
+    this.onRequestCaloriesData, // Nuevo parámetro opcional
   });
 
   @override
@@ -70,6 +72,31 @@ class WearableLayout extends StatelessWidget {
           left: screenSize.width * 0.02,
           child: MqttConnectionWidget(isCompact: true),
         ),
+
+        // Botón para solicitar datos (solo en wearables)
+        if (onRequestCaloriesData != null && isRound) ...[
+          Positioned(
+            bottom: screenSize.height * 0.15,
+            left: screenSize.width * 0.15,
+            child: WatchButton(
+              onTap: onRequestCaloriesData!,
+              icon: Icons.sync,
+              color: Colors.blue.shade300,
+              size: watchSize * 0.8,
+            ),
+          ),
+        ] else if (onRequestCaloriesData != null && !isRound) ...[
+          Positioned(
+            bottom: screenSize.height * 0.08,
+            left: screenSize.width * 0.05,
+            child: WatchButton(
+              onTap: onRequestCaloriesData!,
+              icon: Icons.sync,
+              color: Colors.blue.shade300,
+              size: watchSize * 0.8,
+            ),
+          ),
+        ],
 
         // Botones posicionados de manera adaptativa
         if (isRound) ...[
