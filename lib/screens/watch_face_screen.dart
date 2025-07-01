@@ -6,6 +6,7 @@ import '../models/device_connection_model.dart';
 import '../services/calorie_service.dart';
 import '../services/settings_service.dart';
 import '../services/mqtt_communication_service.dart';
+import '../services/notification_sound_service.dart';
 import '../utils/color_utils.dart';
 import '../utils/device_utils.dart' as DeviceUtils;
 import '../widgets/watch_face/watch_face_layout.dart';
@@ -29,6 +30,7 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
   final CalorieService _calorieService = CalorieService();
   final SettingsService _settingsService = SettingsService();
   final MqttCommunicationService _mqttService = MqttCommunicationService();
+  final NotificationSoundService _notificationSoundService = NotificationSoundService();
 
   // State management
   Timer? _activityTimer;
@@ -49,7 +51,7 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
     _animations = WatchFaceAnimations(this);
     _setupStreams();
     _loadInitialSettings();
-    _initializeMqtt();
+    _initializeServices();
     _startAutomaticActivity();
   }
 
@@ -63,6 +65,7 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
     _activityMessageSubscription?.cancel();
     _connectionStatusSubscription?.cancel();
     _mqttService.dispose();
+    _notificationSoundService.dispose();
     super.dispose();
   }
 
@@ -72,6 +75,9 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
         setState(() {
           _notifications.add(entry);
         });
+        
+        // 🔊 REPRODUCIR SONIDO PARA NUEVA ACTIVIDAD
+        _notificationSoundService.playActivityNotificationSound();
       }
     });
 
@@ -82,6 +88,14 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
         _applyConfigurationChanges(config);
       }
     });
+  }
+
+  Future<void> _initializeServices() async {
+    // Inicializar servicio de sonidos
+    await _notificationSoundService.initialize();
+    
+    // Inicializar MQTT
+    await _initializeMqtt();
   }
 
   Future<void> _initializeMqtt() async {
@@ -146,6 +160,10 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
           print(
             '🏃 Received activity message: ${activityMessage.activityDescription}',
           );
+          
+          // 🔊 REPRODUCIR SONIDO PARA MENSAJE MQTT
+          _notificationSoundService.playMqttMessageSound();
+          
           _showActivityMessageModal(activityMessage);
         }
       });
@@ -182,6 +200,9 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
         print(
           '📥 Received calories response: ${calories.toStringAsFixed(0)} cal, $heartRate BPM',
         );
+
+        // 🔊 REPRODUCIR SONIDO PARA RESPUESTA RECIBIDA
+        _notificationSoundService.playMqttMessageSound();
 
         // Mostrar notificación de datos recibidos
         if (mounted) {
@@ -436,6 +457,9 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
             if (!wasGoalReached && fitnessData.calories == 0.0) {
               _showGoalReachedAnimation();
               _calorieService.resetDailyProgress();
+              
+              // 🔊 REPRODUCIR SONIDO PARA META ALCANZADA
+              _notificationSoundService.playGoalReachedSound();
             } else {
               _calorieService.addCalories(increment, fitnessData);
             }
