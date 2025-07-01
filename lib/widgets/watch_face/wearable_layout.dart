@@ -66,10 +66,14 @@ class WearableLayout extends StatelessWidget {
           ),
         ),
 
-        // Widget de conexión MQTT en la esquina superior izquierda
+        // Widget de conexión MQTT - MOVIDO MÁS A LA DERECHA EN PANTALLAS REDONDAS
         Positioned(
           top: screenSize.height * 0.02,
-          left: screenSize.width * 0.02,
+          left:
+              screenSize.width *
+              (isRound
+                  ? 0.15
+                  : 0.02), // Movido aún más a la derecha en pantallas redondas
           child: MqttConnectionWidget(isCompact: true),
         ),
 
@@ -167,15 +171,18 @@ class WearableLayout extends StatelessWidget {
                     ]),
                     builder: (context, child) {
                       return Transform.scale(
-                        scale: animations.pulseAnimation.value * 
-                               animations.goalReachedAnimation.value,
+                        scale:
+                            animations.pulseAnimation.value *
+                            animations.goalReachedAnimation.value,
                         child: SizedBox(
                           width: watchSize,
                           height: watchSize,
                           child: Stack(
                             children: [
                               ProgressRing(
-                                progress: fitnessData.calories / fitnessData.dailyCaloriesGoal,
+                                progress:
+                                    fitnessData.calories /
+                                    fitnessData.dailyCaloriesGoal,
                                 color: progressColor,
                                 strokeWidth: isRound ? 13 : 14,
                                 radius: watchSize * 0.4,
@@ -185,8 +192,10 @@ class WearableLayout extends StatelessWidget {
                                 watchSize: watchSize,
                                 isRound: isRound,
                                 accentColor: accentColor,
-                                onShowCaloriesAdjustment: onShowCaloriesAdjustment,
-                                onShowHeartRateAdjustment: onShowHeartRateAdjustment,
+                                onShowCaloriesAdjustment:
+                                    onShowCaloriesAdjustment,
+                                onShowHeartRateAdjustment:
+                                    onShowHeartRateAdjustment,
                               ),
                             ],
                           ),
@@ -217,8 +226,14 @@ class WearableLayout extends StatelessWidget {
     );
   }
 
-  Widget _buildMotivationalText(double watchSize, Color accentColor, bool isRound) {
-    final motivationalText = ColorUtils.getMotivationalText(fitnessData.calories);
+  Widget _buildMotivationalText(
+    double watchSize,
+    Color accentColor,
+    bool isRound,
+  ) {
+    final motivationalText = ColorUtils.getMotivationalText(
+      fitnessData.calories,
+    );
 
     return Container(
       padding: EdgeInsets.symmetric(
@@ -278,7 +293,11 @@ class WearableLayout extends StatelessWidget {
     );
   }
 
-  Widget _buildActivityDescription(double watchSize, Color accentColor, bool isRound) {
+  Widget _buildActivityDescription(
+    double watchSize,
+    Color accentColor,
+    bool isRound,
+  ) {
     final description = ColorUtils.getActivityDescription(fitnessData.calories);
 
     return GestureDetector(
@@ -293,13 +312,15 @@ class WearableLayout extends StatelessWidget {
           color: accentColor.withOpacity(0.12),
           border: Border.all(color: accentColor.withOpacity(0.3), width: 1),
           // Agregar efecto visual para indicar que es clickeable
-          boxShadow: onSendActivityMessage != null ? [
-            BoxShadow(
-              color: accentColor.withOpacity(0.2),
-              blurRadius: 4,
-              spreadRadius: 1,
-            ),
-          ] : null,
+          boxShadow: onSendActivityMessage != null
+              ? [
+                  BoxShadow(
+                    color: accentColor.withOpacity(0.2),
+                    blurRadius: 4,
+                    spreadRadius: 1,
+                  ),
+                ]
+              : null,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,

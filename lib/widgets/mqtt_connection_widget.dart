@@ -3,6 +3,7 @@ import 'dart:async';
 import '../services/mqtt_communication_service.dart';
 import '../models/device_connection_model.dart';
 import '../utils/device_utils.dart' as DeviceUtils;
+import '../utils/screen_utils.dart';
 import 'adaptive_text.dart';
 
 class MqttConnectionWidget extends StatefulWidget {
@@ -381,6 +382,8 @@ class _MqttConnectionWidgetState extends State<MqttConnectionWidget>
   }
 
   Widget _buildCompactWidget(Size screenSize, bool isWearable) {
+    final isRound = ScreenUtils.isRoundScreen(screenSize);
+
     return GestureDetector(
       onTap: _toggleConnection,
       onLongPress: _showConnectionDetails,
@@ -396,7 +399,9 @@ class _MqttConnectionWidgetState extends State<MqttConnectionWidget>
                   ? _rotationAnimation.value * 2 * 3.14159
                   : 0.0,
               child: Container(
-                padding: EdgeInsets.all(isWearable ? 8 : 12),
+                padding: EdgeInsets.all(
+                  isWearable && isRound ? 6 : (isWearable ? 8 : 12),
+                ), // Padding más pequeño para redondos
                 decoration: BoxDecoration(
                   color: _getStatusColor().withOpacity(0.15),
                   shape: BoxShape.circle,
@@ -419,7 +424,11 @@ class _MqttConnectionWidgetState extends State<MqttConnectionWidget>
                     Icon(
                       _getStatusIcon(),
                       color: _getStatusColor(),
-                      size: isWearable ? 16 : 20,
+                      size: isWearable && isRound
+                          ? 14
+                          : (isWearable
+                                ? 16
+                                : 20), // Icono más pequeño para redondos
                     ),
                     // Badge para mostrar número de dispositivos conectados
                     if (_connectedDevices.isNotEmpty &&
@@ -435,15 +444,19 @@ class _MqttConnectionWidgetState extends State<MqttConnectionWidget>
                             border: Border.all(color: Colors.white, width: 1),
                           ),
                           constraints: BoxConstraints(
-                            minWidth: 14,
-                            minHeight: 14,
+                            minWidth: isWearable && isRound
+                                ? 12
+                                : 14, // Badge más pequeño para redondos
+                            minHeight: isWearable && isRound ? 12 : 14,
                           ),
                           child: Center(
                             child: Text(
                               '${_connectedDevices.length}',
                               style: TextStyle(
                                 color: Colors.white,
-                                fontSize: 8,
+                                fontSize: isWearable && isRound
+                                    ? 7
+                                    : 8, // Texto más pequeño para redondos
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
