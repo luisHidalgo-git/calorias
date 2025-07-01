@@ -14,15 +14,16 @@ class MqttCommunicationService {
   factory MqttCommunicationService() => _instance;
   MqttCommunicationService._internal();
 
-  // Configuración MQTT
+  // Configuración MQTT - Usando MQTT v3.1.1
   static const String _mqttHost = 'test.mosquitto.org';
   static const int _mqttPort = 1883;
-  static const String _baseTopic = 'calorias/bidireccional';
+  static const String _baseTopic = 'smartwatch/calories';
   static const String _discoveryTopic = '$_baseTopic/discovery';
   static const String _dataTopic = '$_baseTopic/data';
   static const String _statusTopic = '$_baseTopic/status';
   static const String _heartbeatTopic = '$_baseTopic/heartbeat';
-  static const String _activityMessageTopic = '$_baseTopic/activity_message'; // Nuevo topic
+  static const String _activityMessageTopic =
+      '$_baseTopic/activity'; // Topic simplificado
 
   MqttServerClient? _client;
   String? _deviceId;
@@ -31,6 +32,7 @@ class MqttCommunicationService {
   Timer? _heartbeatTimer;
   Timer? _discoveryTimer;
   Timer? _cleanupTimer;
+  Timer? _reconnectTimer;
 
   // Streams para comunicar el estado
   final StreamController<ConnectionStatus> _connectionStatusController =
@@ -40,13 +42,14 @@ class MqttCommunicationService {
   final StreamController<MqttCommunicationMessage> _messageController =
       StreamController<MqttCommunicationMessage>.broadcast();
   final StreamController<ActivityMessage> _activityMessageController =
-      StreamController<ActivityMessage>.broadcast(); // Nuevo stream
+      StreamController<ActivityMessage>.broadcast();
 
   // Estado interno
   ConnectionStatus _connectionStatus = ConnectionStatus.disconnected;
   final Map<String, DeviceConnectionModel> _discoveredDevices = {};
   final Map<String, DateTime> _connectedDevices = {};
   DeviceConnectionModel? _connectedDevice;
+  bool _isReconnecting = false;
 
   // Getters públicos
   Stream<ConnectionStatus> get connectionStatusStream =>
@@ -56,7 +59,7 @@ class MqttCommunicationService {
   Stream<MqttCommunicationMessage> get messageStream =>
       _messageController.stream;
   Stream<ActivityMessage> get activityMessageStream =>
-      _activityMessageController.stream; // Nuevo getter
+      _activityMessageController.stream;
 
   ConnectionStatus get connectionStatus => _connectionStatus;
   List<DeviceConnectionModel> get discoveredDevices =>
@@ -93,6 +96,9 @@ class MqttCommunicationService {
       await _initializeDeviceInfo();
       _startCleanupTimer();
       print('MQTT Service initialized - Device: $_deviceName ($_deviceType)');
+
+      // Auto-conectar al inicializar
+      await connect();
     } catch (e) {
       print('Error initializing MQTT service: $e');
     }
@@ -105,16 +111,16 @@ class MqttCommunicationService {
     try {
       if (Platform.isAndroid) {
         final androidInfo = await deviceInfo.androidInfo;
-        _deviceName = androidInfo.model;
+        _deviceName = '${androidInfo.brand} ${androidInfo.model}';
         _deviceId = androidInfo.id;
         _deviceType = _determineDeviceType();
       } else if (Platform.isIOS) {
         final iosInfo = await deviceInfo.iosInfo;
-        _deviceName = iosInfo.name;
+        _deviceName = '${iosInfo.name} (${iosInfo.model})';
         _deviceId = iosInfo.identifierForVendor ?? uuid.v4();
         _deviceType = _determineDeviceType();
       } else {
-        _deviceName = Platform.operatingSystem;
+        _deviceName = 'Dispositivo ${Platform.operatingSystem}';
         _deviceId = uuid.v4();
         _deviceType = _determineDeviceType();
       }
@@ -123,6 +129,10 @@ class MqttCommunicationService {
       _deviceId = uuid.v4();
       _deviceType = _determineDeviceType();
     }
+
+    print(
+      'Device initialized: $_deviceName (ID: $_deviceId, Type: $_deviceType)',
+    );
   }
 
   DeviceConnectionType _determineDeviceType() {
@@ -140,54 +150,84 @@ class MqttCommunicationService {
 
     try {
       _updateConnectionStatus(ConnectionStatus.connecting);
+      print('Connecting to MQTT broker: $_mqttHost:$_mqttPort');
 
-      _client = MqttServerClient(_mqttHost, _deviceId!);
+      // Crear cliente con ID único
+      final clientId =
+          'smartwatch_${_deviceId}_${DateTime.now().millisecondsSinceEpoch}';
+      _client = MqttServerClient(_mqttHost, clientId);
       _client!.port = _mqttPort;
-      _client!.keepAlivePeriod = 30;
+      _client!.keepAlivePeriod = 20;
       _client!.autoReconnect = true;
       _client!.resubscribeOnAutoReconnect = true;
-      _client!.logging(on: false);
+      _client!.logging(on: true); // Habilitar logging para debug
 
+      // Configurar callbacks
       _client!.onConnected = _onConnected;
       _client!.onDisconnected = _onDisconnected;
       _client!.onSubscribed = _onSubscribed;
       _client!.onAutoReconnect = _onAutoReconnect;
+      _client!.onAutoReconnected = _onAutoReconnected;
 
+      // Mensaje de última voluntad
       final connMessage = MqttConnectMessage()
-          .withClientIdentifier(_deviceId!)
-          .withWillTopic('$_statusTopic/$_deviceId/offline')
+          .withClientIdentifier(clientId)
+          .withWillTopic('$_statusTopic/$_deviceId')
           .withWillMessage(
-            '{"status": "offline", "timestamp": "${DateTime.now().toIso8601String()}"}',
+            jsonEncode({
+              'status': 'offline',
+              'deviceId': _deviceId,
+              'timestamp': DateTime.now().toIso8601String(),
+            }),
           )
           .withWillQos(MqttQos.atLeastOnce)
-          .startClean()
-          .withWillRetain();
+          .withWillRetain()
+          .startClean(); // Limpiar sesión anterior
 
       _client!.connectionMessage = connMessage;
 
+      print('Attempting MQTT connection...');
       await _client!.connect();
 
       if (_client!.connectionStatus!.state == MqttConnectionState.connected) {
+        print('MQTT Connected successfully!');
         _setupSubscriptions();
         _startHeartbeat();
         _startDiscovery();
         _updateConnectionStatus(ConnectionStatus.connected);
+        _isReconnecting = false;
         return true;
       } else {
+        print('MQTT Connection failed: ${_client!.connectionStatus}');
         _updateConnectionStatus(ConnectionStatus.error);
         return false;
       }
     } catch (e) {
       print('Error connecting to MQTT: $e');
       _updateConnectionStatus(ConnectionStatus.error);
+      _scheduleReconnect();
       return false;
     }
+  }
+
+  void _scheduleReconnect() {
+    if (_isReconnecting) return;
+
+    _isReconnecting = true;
+    _reconnectTimer?.cancel();
+    _reconnectTimer = Timer(Duration(seconds: 5), () async {
+      if (_connectionStatus != ConnectionStatus.connected) {
+        print('Attempting to reconnect...');
+        await connect();
+      }
+    });
   }
 
   Future<void> disconnect() async {
     try {
       _heartbeatTimer?.cancel();
       _discoveryTimer?.cancel();
+      _reconnectTimer?.cancel();
 
       if (_client?.connectionStatus?.state == MqttConnectionState.connected) {
         await _publishStatus('offline');
@@ -199,6 +239,7 @@ class MqttCommunicationService {
       _connectedDevices.clear();
       _connectedDevice = null;
       _devicesController.add([]);
+      _isReconnecting = false;
     } catch (e) {
       print('Error disconnecting from MQTT: $e');
     }
@@ -208,17 +249,23 @@ class MqttCommunicationService {
     if (_client?.connectionStatus?.state != MqttConnectionState.connected)
       return;
 
+    print('Setting up MQTT subscriptions...');
+
+    // Suscribirse a todos los topics relevantes
     _client!.subscribe(_discoveryTopic, MqttQos.atLeastOnce);
     _client!.subscribe('$_dataTopic/+', MqttQos.atLeastOnce);
-    _client!.subscribe('$_statusTopic/+/+', MqttQos.atLeastOnce);
+    _client!.subscribe('$_statusTopic/+', MqttQos.atLeastOnce);
     _client!.subscribe('$_heartbeatTopic/+', MqttQos.atLeastOnce);
-    _client!.subscribe(_activityMessageTopic, MqttQos.atLeastOnce); // Nueva suscripción
+    _client!.subscribe(_activityMessageTopic, MqttQos.atLeastOnce);
 
+    // Configurar listener para mensajes entrantes
     _client!.updates!.listen((List<MqttReceivedMessage<MqttMessage>> messages) {
       for (final message in messages) {
         _handleIncomingMessage(message);
       }
     });
+
+    print('MQTT subscriptions completed');
   }
 
   void _handleIncomingMessage(
@@ -235,8 +282,8 @@ class MqttCommunicationService {
         );
       }
 
-      print('Received message on topic: $topic');
-      print('Payload: $payload');
+      print('📨 Received message on topic: $topic');
+      print('📨 Payload: $payload');
 
       if (topic == _discoveryTopic) {
         _handleDiscoveryMessage(payload);
@@ -247,7 +294,7 @@ class MqttCommunicationService {
       } else if (topic.startsWith(_heartbeatTopic)) {
         _handleHeartbeatMessage(topic, payload);
       } else if (topic == _activityMessageTopic) {
-        _handleActivityMessage(payload); // Nuevo manejador
+        _handleActivityMessage(payload);
       }
     } catch (e) {
       print('Error handling incoming message: $e');
@@ -259,7 +306,9 @@ class MqttCommunicationService {
       final data = jsonDecode(payload);
       final deviceId = data['deviceId'];
 
-      if (deviceId == _deviceId) return;
+      if (deviceId == _deviceId) return; // Ignorar nuestros propios mensajes
+
+      print('🔍 Discovery message from: $deviceId');
 
       final device = DeviceConnectionModel(
         deviceId: deviceId,
@@ -275,6 +324,7 @@ class MqttCommunicationService {
       _discoveredDevices[deviceId] = device;
       _devicesController.add(discoveredDevices);
 
+      // Responder al discovery si es apropiado
       if (_shouldRespondToDiscovery(device.deviceType)) {
         _publishDiscoveryResponse();
       }
@@ -287,7 +337,10 @@ class MqttCommunicationService {
     try {
       final message = MqttCommunicationMessage.fromJsonString(payload);
 
-      if (message.deviceId == _deviceId) return;
+      if (message.deviceId == _deviceId)
+        return; // Ignorar nuestros propios mensajes
+
+      print('📊 Data message from: ${message.deviceId}');
 
       if (_discoveredDevices.containsKey(message.deviceId)) {
         _discoveredDevices[message.deviceId] =
@@ -308,10 +361,12 @@ class MqttCommunicationService {
   void _handleStatusMessage(String topic, String payload) {
     try {
       final data = jsonDecode(payload);
-      final deviceId = topic.split('/')[2];
+      final deviceId = topic.split('/').last;
       final status = data['status'];
 
-      if (deviceId == _deviceId) return;
+      if (deviceId == _deviceId) return; // Ignorar nuestros propios mensajes
+
+      print('📡 Status message from $deviceId: $status');
 
       if (_discoveredDevices.containsKey(deviceId)) {
         ConnectionStatus connectionStatus;
@@ -343,9 +398,11 @@ class MqttCommunicationService {
   void _handleHeartbeatMessage(String topic, String payload) {
     try {
       final data = jsonDecode(payload);
-      final deviceId = topic.split('/')[2];
+      final deviceId = topic.split('/').last;
 
-      if (deviceId == _deviceId) return;
+      if (deviceId == _deviceId) return; // Ignorar nuestros propios mensajes
+
+      print('💓 Heartbeat from: $deviceId');
 
       _connectedDevices[deviceId] = DateTime.now();
 
@@ -374,7 +431,6 @@ class MqttCommunicationService {
     }
   }
 
-  // Nuevo: manejar mensajes de actividad
   void _handleActivityMessage(String payload) {
     try {
       final activityMessage = ActivityMessage.fromJsonString(payload);
@@ -382,8 +438,10 @@ class MqttCommunicationService {
       // No procesar nuestros propios mensajes
       if (activityMessage.senderDeviceId == _deviceId) return;
 
-      print('Received activity message from ${activityMessage.senderDeviceName}: ${activityMessage.activityDescription}');
-      
+      print(
+        '🏃 Activity message from ${activityMessage.senderDeviceName}: ${activityMessage.activityDescription}',
+      );
+
       // Enviar al stream para que la UI lo maneje
       _activityMessageController.add(activityMessage);
     } catch (e) {
@@ -408,6 +466,7 @@ class MqttCommunicationService {
     };
 
     await _publishMessage(_discoveryTopic, jsonEncode(message));
+    print('📤 Discovery response sent');
   }
 
   Future<void> startDiscovery() async {
@@ -423,11 +482,14 @@ class MqttCommunicationService {
     };
 
     await _publishMessage(_discoveryTopic, jsonEncode(message));
+    print('📤 Discovery message sent');
   }
 
   Future<void> sendData(Map<String, dynamic> data) async {
-    if (_client?.connectionStatus?.state != MqttConnectionState.connected)
+    if (_client?.connectionStatus?.state != MqttConnectionState.connected) {
+      print('❌ Cannot send data: MQTT not connected');
       return;
+    }
 
     final message = MqttCommunicationMessage(
       type: 'data',
@@ -439,17 +501,17 @@ class MqttCommunicationService {
     );
 
     await _publishMessage('$_dataTopic/$_deviceId', message.toJsonString());
+    print('📤 Data sent: ${data.keys.join(', ')}');
   }
 
-  // Nuevo: enviar mensaje de actividad
   Future<void> sendActivityMessage({
     required String activityDescription,
     required double calories,
     required int heartRate,
   }) async {
     if (_client?.connectionStatus?.state != MqttConnectionState.connected) {
-      print('Cannot send activity message: MQTT not connected');
-      return;
+      print('❌ Cannot send activity message: MQTT not connected');
+      throw Exception('MQTT not connected');
     }
 
     final uuid = Uuid();
@@ -464,20 +526,24 @@ class MqttCommunicationService {
       timestamp: DateTime.now(),
     );
 
-    await _publishMessage(_activityMessageTopic, activityMessage.toJsonString());
-    print('Activity message sent: $activityDescription');
+    await _publishMessage(
+      _activityMessageTopic,
+      activityMessage.toJsonString(),
+    );
+    print(
+      '📤 Activity message sent: $activityDescription (${calories.toStringAsFixed(0)} cal, ${heartRate} BPM)',
+    );
   }
 
   Future<void> _publishStatus(String status) async {
     final message = {
       'status': status,
+      'deviceId': _deviceId,
       'timestamp': DateTime.now().toIso8601String(),
     };
 
-    await _publishMessage(
-      '$_statusTopic/$_deviceId/$status',
-      jsonEncode(message),
-    );
+    await _publishMessage('$_statusTopic/$_deviceId', jsonEncode(message));
+    print('📤 Status sent: $status');
   }
 
   Future<void> _publishHeartbeat() async {
@@ -490,18 +556,22 @@ class MqttCommunicationService {
     };
 
     await _publishMessage('$_heartbeatTopic/$_deviceId', jsonEncode(message));
+    print('📤 Heartbeat sent');
   }
 
   Future<void> _publishMessage(String topic, String message) async {
-    if (_client?.connectionStatus?.state != MqttConnectionState.connected)
+    if (_client?.connectionStatus?.state != MqttConnectionState.connected) {
+      print('❌ Cannot publish to $topic: MQTT not connected');
       return;
+    }
 
     try {
       final builder = MqttClientPayloadBuilder();
       builder.addString(message);
       _client!.publishMessage(topic, MqttQos.atLeastOnce, builder.payload!);
+      print('📤 Published to $topic: ${message.length} chars');
     } catch (e) {
-      print('Error publishing message: $e');
+      print('❌ Error publishing message to $topic: $e');
     }
   }
 
@@ -519,7 +589,10 @@ class MqttCommunicationService {
       startDiscovery();
     });
 
-    startDiscovery();
+    // Enviar discovery inicial inmediatamente
+    Future.delayed(Duration(seconds: 2), () {
+      startDiscovery();
+    });
   }
 
   void _startCleanupTimer() {
@@ -545,6 +618,7 @@ class MqttCommunicationService {
 
       if (devicesToRemove.isNotEmpty) {
         _devicesController.add(discoveredDevices);
+        print('🧹 Cleaned up ${devicesToRemove.length} inactive devices');
       }
     });
   }
@@ -552,37 +626,52 @@ class MqttCommunicationService {
   void _updateConnectionStatus(ConnectionStatus status) {
     _connectionStatus = status;
     _connectionStatusController.add(status);
+    print('🔄 Connection status: ${status.name}');
   }
 
   void _onConnected() {
-    print('MQTT Connected');
+    print('✅ MQTT Connected successfully');
     _publishStatus('online');
     _publishHeartbeat();
   }
 
   void _onDisconnected() {
-    print('MQTT Disconnected');
+    print('❌ MQTT Disconnected');
     _updateConnectionStatus(ConnectionStatus.disconnected);
     _connectedDevices.clear();
+
+    // Intentar reconectar si no fue desconexión intencional
+    if (!_isReconnecting) {
+      _scheduleReconnect();
+    }
   }
 
   void _onSubscribed(String topic) {
-    print('Subscribed to topic: $topic');
+    print('✅ Subscribed to topic: $topic');
   }
 
   void _onAutoReconnect() {
-    print('MQTT Auto reconnecting...');
+    print('🔄 MQTT Auto reconnecting...');
     _updateConnectionStatus(ConnectionStatus.connecting);
+  }
+
+  void _onAutoReconnected() {
+    print('✅ MQTT Auto reconnected successfully');
+    _updateConnectionStatus(ConnectionStatus.connected);
+    _setupSubscriptions();
+    _startHeartbeat();
+    _startDiscovery();
   }
 
   void dispose() {
     _heartbeatTimer?.cancel();
     _discoveryTimer?.cancel();
     _cleanupTimer?.cancel();
+    _reconnectTimer?.cancel();
     _connectionStatusController.close();
     _devicesController.close();
     _messageController.close();
-    _activityMessageController.close(); // Nuevo
+    _activityMessageController.close();
     disconnect();
   }
 }

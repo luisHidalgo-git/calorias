@@ -36,7 +36,8 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
   StreamSubscription? _newEntrySubscription;
   StreamSubscription? _configUpdateSubscription;
   StreamSubscription? _mqttMessageSubscription;
-  StreamSubscription? _activityMessageSubscription; // Nueva suscripción
+  StreamSubscription? _activityMessageSubscription;
+  StreamSubscription? _connectionStatusSubscription;
   int _currentReadingFrequency = 3;
 
   // Animation controllers
@@ -59,7 +60,8 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
     _newEntrySubscription?.cancel();
     _configUpdateSubscription?.cancel();
     _mqttMessageSubscription?.cancel();
-    _activityMessageSubscription?.cancel(); // Cancelar nueva suscripción
+    _activityMessageSubscription?.cancel();
+    _connectionStatusSubscription?.cancel();
     _mqttService.dispose();
     super.dispose();
   }
@@ -83,8 +85,48 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
   }
 
   Future<void> _initializeMqtt() async {
+    print('🚀 Initializing MQTT service...');
     await _mqttService.initialize();
-    
+
+    // Escuchar estado de conexión
+    _connectionStatusSubscription = _mqttService.connectionStatusStream.listen((
+      status,
+    ) {
+      if (mounted) {
+        print('📡 MQTT Connection status changed: ${status.name}');
+        // Mostrar notificación de estado si es necesario
+        if (status == ConnectionStatus.connected) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  Icon(Icons.wifi, color: Colors.green),
+                  SizedBox(width: 8),
+                  Text('Conectado a MQTT'),
+                ],
+              ),
+              backgroundColor: Colors.green.shade700,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        } else if (status == ConnectionStatus.error) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  Icon(Icons.wifi_off, color: Colors.red),
+                  SizedBox(width: 8),
+                  Text('Error de conexión MQTT'),
+                ],
+              ),
+              backgroundColor: Colors.red.shade700,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    });
+
     // Escuchar mensajes MQTT
     _mqttMessageSubscription = _mqttService.messageStream.listen((message) {
       if (mounted) {
@@ -92,9 +134,14 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
       }
     });
 
-    // Nueva suscripción para mensajes de actividad
-    _activityMessageSubscription = _mqttService.activityMessageStream.listen((activityMessage) {
+    // Escuchar mensajes de actividad
+    _activityMessageSubscription = _mqttService.activityMessageStream.listen((
+      activityMessage,
+    ) {
       if (mounted) {
+        print(
+          '🏃 Received activity message: ${activityMessage.activityDescription}',
+        );
         _showActivityMessageModal(activityMessage);
       }
     });
@@ -102,52 +149,54 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
 
   void _handleMqttMessage(dynamic message) {
     try {
+      print('📨 Handling MQTT message: ${message.type}');
+
       // Procesar mensajes de sincronización de datos
-      if (message.type == 'calorie_sync') {
+      if (message.type == 'calorie_sync' || message.type == 'data') {
         final calories = message.data['calories']?.toDouble() ?? 0.0;
         final heartRate = message.data['heartRate']?.toInt() ?? 72;
-        
+
+        print(
+          '📊 Syncing data: ${calories.toStringAsFixed(0)} cal, $heartRate BPM',
+        );
+
         setState(() {
           fitnessData.setCalories(calories);
           fitnessData.setHeartRate(heartRate);
         });
-        
+
         _calorieService.updateCurrentCalories(calories, fitnessData);
       } else if (message.type == 'settings_sync') {
         // Sincronizar configuraciones
         final newGoal = message.data['dailyCaloriesGoal']?.toDouble();
         final newMaxHR = message.data['maxHeartRate']?.toInt();
-        
+
         if (newGoal != null) {
           fitnessData.updateCaloriesGoal(newGoal);
         }
         if (newMaxHR != null) {
           fitnessData.updateMaxHeartRate(newMaxHR);
         }
-        
+
         setState(() {});
       }
     } catch (e) {
-      print('Error handling MQTT message: $e');
+      print('❌ Error handling MQTT message: $e');
     }
   }
 
-  // Nueva función para mostrar el modal de mensaje de actividad
   void _showActivityMessageModal(ActivityMessage activityMessage) {
     showDialog(
       context: context,
       barrierDismissible: true,
       barrierColor: Colors.black54,
-      builder: (context) => ActivityMessageModal(
-        activityMessage: activityMessage,
-      ),
+      builder: (context) =>
+          ActivityMessageModal(activityMessage: activityMessage),
     );
   }
 
-  // Nueva función para enviar mensaje de actividad
   Future<void> _sendActivityMessage() async {
     if (!_mqttService.isConnected) {
-      // Mostrar mensaje de error si no está conectado
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Row(
@@ -165,8 +214,12 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
     }
 
     try {
-      final activityDescription = ColorUtils.getActivityDescription(fitnessData.calories);
-      
+      final activityDescription = ColorUtils.getActivityDescription(
+        fitnessData.calories,
+      );
+
+      print('📤 Sending activity message: $activityDescription');
+
       await _mqttService.sendActivityMessage(
         activityDescription: activityDescription,
         calories: fitnessData.calories,
@@ -180,7 +233,7 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
             children: [
               Icon(Icons.send, color: Colors.green),
               SizedBox(width: 8),
-              Text('Mensaje enviado: $activityDescription'),
+              Expanded(child: Text('Mensaje enviado: $activityDescription')),
             ],
           ),
           backgroundColor: Colors.green.shade700,
@@ -188,7 +241,7 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
         ),
       );
     } catch (e) {
-      print('Error sending activity message: $e');
+      print('❌ Error sending activity message: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Row(
@@ -279,7 +332,7 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
           });
 
           _animations.triggerBackgroundPulse();
-          
+
           // Enviar datos actualizados por MQTT
           _sendDataToMqtt();
         }
@@ -410,9 +463,9 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
                         _sendDataToMqtt();
                       },
                     ),
-                onSendActivityMessage: _mqttService.isConnected 
-                    ? _sendActivityMessage 
-                    : null, // Solo habilitar si hay conexión MQTT
+                onSendActivityMessage: _mqttService.isConnected
+                    ? _sendActivityMessage
+                    : null,
               ),
             );
           },

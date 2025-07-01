@@ -697,7 +697,7 @@ class _MqttConnectionWidgetState extends State<MqttConnectionWidget>
               _buildDetailRow('Servidor:', 'test.mosquitto.org', screenSize),
               _buildDetailRow('Puerto:', '1883', screenSize),
               _buildDetailRow('Estado:', _getStatusDescription(), screenSize),
-              _buildDetailRow('Protocolo:', 'MQTT v3.1.1', screenSize),
+              _buildDetailRow('Protocolo:', 'MQTT v3', screenSize),
             ], screenSize),
 
             SizedBox(height: 16),
