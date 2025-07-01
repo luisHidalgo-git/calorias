@@ -617,6 +617,7 @@ class _MqttConnectionWidgetState extends State<MqttConnectionWidget>
       backgroundColor: Colors.transparent,
       child: Container(
         width: screenSize.width * 0.85,
+        height: screenSize.height * 0.8, // Altura máxima fija
         padding: EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: Color(0xFF1A1A1A),
@@ -637,7 +638,7 @@ class _MqttConnectionWidgetState extends State<MqttConnectionWidget>
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
+            // Header fijo
             Row(
               children: [
                 Container(
@@ -692,75 +693,95 @@ class _MqttConnectionWidgetState extends State<MqttConnectionWidget>
 
             SizedBox(height: 20),
 
-            // Información de conexión
-            _buildDetailSection('Información de Conexión', [
-              _buildDetailRow('Servidor:', 'test.mosquitto.org', screenSize),
-              _buildDetailRow('Puerto:', '1883', screenSize),
-              _buildDetailRow('Estado:', _getStatusDescription(), screenSize),
-              _buildDetailRow('Protocolo:', 'MQTT v3', screenSize),
-            ], screenSize),
-
-            SizedBox(height: 16),
-
-            // Información del dispositivo
-            _buildDetailSection('Dispositivo Local', [
-              _buildDetailRow(
-                'ID:',
-                _mqttService.deviceId ?? 'No disponible',
-                screenSize,
-              ),
-              _buildDetailRow(
-                'Nombre:',
-                _mqttService.deviceName ?? 'No disponible',
-                screenSize,
-              ),
-              _buildDetailRow(
-                'Tipo:',
-                _mqttService.deviceType?.name ?? 'No disponible',
-                screenSize,
-              ),
-            ], screenSize),
-
-            // Nueva sección: Dispositivos conectados
-            if (_connectedDevices.isNotEmpty) ...[
-              SizedBox(height: 16),
-              _buildDetailSection(
-                'Dispositivos Conectados (${_connectedDevices.length})',
-                _connectedDevices
-                    .map(
-                      (device) => _buildConnectedDeviceRow(device, screenSize),
-                    )
-                    .toList(),
-                screenSize,
-                sectionColor: Colors.green,
-              ),
-            ],
-
-            if (_discoveredDevices.isNotEmpty) ...[
-              SizedBox(height: 16),
-              _buildDetailSection(
-                'Dispositivos Descubiertos',
-                _discoveredDevices
-                    .where(
-                      (device) => !_connectedDevices.any(
-                        (connected) => connected.deviceId == device.deviceId,
-                      ),
-                    )
-                    .map(
-                      (device) => _buildDetailRow(
-                        '${device.deviceName}:',
-                        '${device.statusText} (${device.lastSeenText})',
+            // Contenido con scroll
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Información de conexión
+                    _buildDetailSection('Información de Conexión', [
+                      _buildDetailRow(
+                        'Servidor:',
+                        'test.mosquitto.org',
                         screenSize,
                       ),
-                    )
-                    .toList(),
-                screenSize,
+                      _buildDetailRow('Puerto:', '1883', screenSize),
+                      _buildDetailRow(
+                        'Estado:',
+                        _getStatusDescription(),
+                        screenSize,
+                      ),
+                      _buildDetailRow('Protocolo:', 'MQTT v3', screenSize),
+                    ], screenSize),
+
+                    SizedBox(height: 16),
+
+                    // Información del dispositivo
+                    _buildDetailSection('Dispositivo Local', [
+                      _buildDetailRow(
+                        'ID:',
+                        _mqttService.deviceId ?? 'No disponible',
+                        screenSize,
+                      ),
+                      _buildDetailRow(
+                        'Nombre:',
+                        _mqttService.deviceName ?? 'No disponible',
+                        screenSize,
+                      ),
+                      _buildDetailRow(
+                        'Tipo:',
+                        _mqttService.deviceType?.name ?? 'No disponible',
+                        screenSize,
+                      ),
+                    ], screenSize),
+
+                    // Nueva sección: Dispositivos conectados
+                    if (_connectedDevices.isNotEmpty) ...[
+                      SizedBox(height: 16),
+                      _buildDetailSection(
+                        'Dispositivos Conectados (${_connectedDevices.length})',
+                        _connectedDevices
+                            .map(
+                              (device) =>
+                                  _buildConnectedDeviceRow(device, screenSize),
+                            )
+                            .toList(),
+                        screenSize,
+                        sectionColor: Colors.green,
+                      ),
+                    ],
+
+                    if (_discoveredDevices.isNotEmpty) ...[
+                      SizedBox(height: 16),
+                      _buildDetailSection(
+                        'Dispositivos Descubiertos',
+                        _discoveredDevices
+                            .where(
+                              (device) => !_connectedDevices.any(
+                                (connected) =>
+                                    connected.deviceId == device.deviceId,
+                              ),
+                            )
+                            .map(
+                              (device) => _buildDetailRow(
+                                '${device.deviceName}:',
+                                '${device.statusText} (${device.lastSeenText})',
+                                screenSize,
+                              ),
+                            )
+                            .toList(),
+                        screenSize,
+                      ),
+                    ],
+
+                    SizedBox(height: 20),
+                  ],
+                ),
               ),
-            ],
+            ),
 
-            SizedBox(height: 20),
-
-            // Botones de acción
+            // Botones de acción fijos en la parte inferior
             Row(
               children: [
                 Expanded(
@@ -847,11 +868,13 @@ class _MqttConnectionWidgetState extends State<MqttConnectionWidget>
                 Icon(Icons.devices, color: Colors.green, size: 16),
                 SizedBox(width: 8),
               ],
-              AdaptiveText(
-                title,
-                fontSize: screenSize.width * 0.04,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
+              Expanded(
+                child: AdaptiveText(
+                  title,
+                  fontSize: screenSize.width * 0.04,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
               ),
             ],
           ),
