@@ -86,65 +86,69 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
 
   Future<void> _initializeMqtt() async {
     print('🚀 Initializing MQTT service...');
-    await _mqttService.initialize();
+    try {
+      await _mqttService.initialize();
 
-    // Escuchar estado de conexión
-    _connectionStatusSubscription = _mqttService.connectionStatusStream.listen((
-      status,
-    ) {
-      if (mounted) {
-        print('📡 MQTT Connection status changed: ${status.name}');
-        // Mostrar notificación de estado si es necesario
-        if (status == ConnectionStatus.connected) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  Icon(Icons.wifi, color: Colors.green),
-                  SizedBox(width: 8),
-                  Text('Conectado a MQTT'),
-                ],
+      // Escuchar estado de conexión
+      _connectionStatusSubscription = _mqttService.connectionStatusStream.listen((
+        status,
+      ) {
+        if (mounted) {
+          print('📡 MQTT Connection status changed: ${status.name}');
+          // Mostrar notificación de estado si es necesario
+          if (status == ConnectionStatus.connected) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Row(
+                  children: [
+                    Icon(Icons.wifi, color: Colors.green),
+                    SizedBox(width: 8),
+                    Text('Conectado a MQTT'),
+                  ],
+                ),
+                backgroundColor: Colors.green.shade700,
+                duration: Duration(seconds: 2),
               ),
-              backgroundColor: Colors.green.shade700,
-              duration: Duration(seconds: 2),
-            ),
-          );
-        } else if (status == ConnectionStatus.error) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  Icon(Icons.wifi_off, color: Colors.red),
-                  SizedBox(width: 8),
-                  Text('Error de conexión MQTT'),
-                ],
+            );
+          } else if (status == ConnectionStatus.error) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Row(
+                  children: [
+                    Icon(Icons.wifi_off, color: Colors.red),
+                    SizedBox(width: 8),
+                    Text('Error de conexión MQTT'),
+                  ],
+                ),
+                backgroundColor: Colors.red.shade700,
+                duration: Duration(seconds: 2),
               ),
-              backgroundColor: Colors.red.shade700,
-              duration: Duration(seconds: 2),
-            ),
-          );
+            );
+          }
         }
-      }
-    });
+      });
 
-    // Escuchar mensajes MQTT
-    _mqttMessageSubscription = _mqttService.messageStream.listen((message) {
-      if (mounted) {
-        _handleMqttMessage(message);
-      }
-    });
+      // Escuchar mensajes MQTT
+      _mqttMessageSubscription = _mqttService.messageStream.listen((message) {
+        if (mounted) {
+          _handleMqttMessage(message);
+        }
+      });
 
-    // Escuchar mensajes de actividad
-    _activityMessageSubscription = _mqttService.activityMessageStream.listen((
-      activityMessage,
-    ) {
-      if (mounted) {
-        print(
-          '🏃 Received activity message: ${activityMessage.activityDescription}',
-        );
-        _showActivityMessageModal(activityMessage);
-      }
-    });
+      // Escuchar mensajes de actividad
+      _activityMessageSubscription = _mqttService.activityMessageStream.listen((
+        activityMessage,
+      ) {
+        if (mounted) {
+          print(
+            '🏃 Received activity message: ${activityMessage.activityDescription}',
+          );
+          _showActivityMessageModal(activityMessage);
+        }
+      });
+    } catch (e) {
+      print('❌ Error initializing MQTT: $e');
+    }
   }
 
   void _handleMqttMessage(dynamic message) {
@@ -227,34 +231,38 @@ class _WatchFaceScreenState extends State<WatchFaceScreen>
       );
 
       // Mostrar confirmación
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              Icon(Icons.send, color: Colors.green),
-              SizedBox(width: 8),
-              Expanded(child: Text('Mensaje enviado: $activityDescription')),
-            ],
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.send, color: Colors.green),
+                SizedBox(width: 8),
+                Expanded(child: Text('Mensaje enviado: $activityDescription')),
+              ],
+            ),
+            backgroundColor: Colors.green.shade700,
+            duration: Duration(seconds: 3),
           ),
-          backgroundColor: Colors.green.shade700,
-          duration: Duration(seconds: 2),
-        ),
-      );
+        );
+      }
     } catch (e) {
       print('❌ Error sending activity message: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              Icon(Icons.error, color: Colors.red),
-              SizedBox(width: 8),
-              Text('Error al enviar mensaje'),
-            ],
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.error, color: Colors.red),
+                SizedBox(width: 8),
+                Text('Error al enviar mensaje: $e'),
+              ],
+            ),
+            backgroundColor: Colors.red.shade700,
+            duration: Duration(seconds: 3),
           ),
-          backgroundColor: Colors.red.shade700,
-          duration: Duration(seconds: 2),
-        ),
-      );
+        );
+      }
     }
   }
 
