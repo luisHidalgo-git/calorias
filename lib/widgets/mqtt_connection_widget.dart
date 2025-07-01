@@ -120,9 +120,221 @@ class _MqttConnectionWidgetState extends State<MqttConnectionWidget>
   }
 
   void _showConnectionDetails() {
+    final screenSize = MediaQuery.of(context).size;
+    final deviceType = DeviceUtils.DeviceUtils.getDeviceType(
+      screenSize.width,
+      screenSize.height,
+    );
+    final isWearable = deviceType == DeviceUtils.DeviceType.wearable;
+
+    if (isWearable) {
+      // Para smartwatch, mostrar un diálogo ultra simplificado
+      _showWearableConnectionDialog();
+    } else {
+      // Para teléfonos, mostrar el diálogo completo
+      showDialog(
+        context: context,
+        builder: (context) => _buildConnectionDetailsDialog(),
+      );
+    }
+  }
+
+  void _showWearableConnectionDialog() {
+    final screenSize = MediaQuery.of(context).size;
+
     showDialog(
       context: context,
-      builder: (context) => _buildConnectionDetailsDialog(),
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          width: screenSize.width * 0.85,
+          constraints: BoxConstraints(maxHeight: screenSize.height * 0.7),
+          padding: EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Color(0xFF1A1A1A),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: _getStatusColor().withOpacity(0.3),
+              width: 1,
+            ),
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header ultra compacto
+                Row(
+                  children: [
+                    Icon(_getStatusIcon(), color: _getStatusColor(), size: 12),
+                    SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        'MQTT',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: Icon(
+                        Icons.close,
+                        color: Colors.grey.shade400,
+                        size: 12,
+                      ),
+                    ),
+                  ],
+                ),
+
+                SizedBox(height: 6),
+
+                // Estado simple
+                Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: _getStatusColor().withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    _connectionStatus.name.toUpperCase(),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: _getStatusColor(),
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+
+                SizedBox(height: 6),
+
+                // Info básica
+                Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade800.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Column(
+                    children: [
+                      _buildSimpleRow('Servidor:', 'mosquitto'),
+                      _buildSimpleRow('Puerto:', '1883'),
+                    ],
+                  ),
+                ),
+
+                // Dispositivos (solo si hay)
+                if (_connectedDevices.isNotEmpty) ...[
+                  SizedBox(height: 6),
+                  Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Colors.green.shade900.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Column(
+                      children: [
+                        Text(
+                          'Conectados: ${_connectedDevices.length}',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: Colors.green,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          textAlign: TextAlign.center,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        SizedBox(height: 4),
+                        // Solo mostrar el primer dispositivo
+                        if (_connectedDevices.isNotEmpty)
+                          Text(
+                            _connectedDevices.first.deviceName,
+                            style: TextStyle(fontSize: 9, color: Colors.white),
+                            textAlign: TextAlign.center,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        if (_connectedDevices.length > 1)
+                          Text(
+                            '+${_connectedDevices.length - 1} más',
+                            style: TextStyle(
+                              fontSize: 8,
+                              color: Colors.green.shade300,
+                            ),
+                            textAlign: TextAlign.center,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+
+                SizedBox(height: 6),
+
+                // Botón de acción
+                GestureDetector(
+                  onTap: () {
+                    Navigator.pop(context);
+                    _toggleConnection();
+                  },
+                  child: Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.symmetric(vertical: 6),
+                    decoration: BoxDecoration(
+                      color: _getStatusColor().withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: _getStatusColor().withOpacity(0.3),
+                      ),
+                    ),
+                    child: Text(
+                      _connectionStatus == ConnectionStatus.connected
+                          ? 'Desconectar'
+                          : 'Conectar',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: _getStatusColor(),
+                        fontWeight: FontWeight.w600,
+                      ),
+                      textAlign: TextAlign.center,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSimpleRow(String label, String value) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 1),
+      child: Row(
+        children: [
+          Text(
+            label,
+            style: TextStyle(fontSize: 9, color: Colors.grey.shade400),
+            overflow: TextOverflow.ellipsis,
+          ),
+          SizedBox(width: 4),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(fontSize: 9, color: Colors.white),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
